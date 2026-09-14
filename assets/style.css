@@ -536,6 +536,24 @@ main {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  cursor: pointer;
+}
+
+.session-chevron {
+  transition: transform 0.15s;
+  color: var(--text-muted);
+}
+
+.session-card.open .session-chevron {
+  transform: rotate(90deg);
+}
+
+.session-card-body {
+  display: none;
+}
+
+.session-card.open .session-card-body {
+  display: block;
 }
 
 .session-card-header .session-subject {

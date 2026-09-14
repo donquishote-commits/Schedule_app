@@ -144,6 +144,11 @@
   const sessionsContainer = document.getElementById('sessionsContainer');
   const noScheduleState = document.getElementById('noScheduleState');
 
+  // Which sessions are expanded, by schedule id — collapsed by default,
+  // remembered across date navigation (so "الفلسفة" stays open/closed as
+  // you flip between different Sundays, say).
+  const expandedSessions = new Set();
+
   // Every interaction re-renders the whole day from scratch, which would
   // otherwise reset the page (and each session table's horizontal scroll)
   // back to the top/start. Save both before rebuilding and restore after.
@@ -199,23 +204,38 @@
   function renderSessionCard(session, dateISO) {
     const card = document.createElement('div');
     card.className = 'session-card';
+    if (expandedSessions.has(session.id)) card.classList.add('open');
 
     const className = (session.room || '').trim();
     const roster = students[className];
 
     const header = document.createElement('div');
     header.className = 'session-card-header';
-    header.innerHTML = `
+    header.addEventListener('click', () => {
+      if (expandedSessions.has(session.id)) expandedSessions.delete(session.id);
+      else expandedSessions.add(session.id);
+      card.classList.toggle('open');
+    });
+
+    const chevron = document.createElement('span');
+    chevron.className = 'session-chevron';
+    chevron.textContent = '◀';
+    header.appendChild(chevron);
+
+    header.insertAdjacentHTML('beforeend', `
       <span class="session-subject">${escapeHTML(session.subject)}</span>
       <span class="session-meta">${escapeHTML(isolateLTR(session.room || ''))}</span>
       <span class="session-meta">${escapeHTML(periodLabelFor(session.periodKey))}</span>
-    `;
+    `);
     if (roster && roster.length > 0) {
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.className = 'btn btn-ghost btn-small copy-absentees-btn';
       copyBtn.textContent = 'نسخ أسماء الغياب';
-      copyBtn.addEventListener('click', () => copyAbsentees(session, dateISO, roster, copyBtn));
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyAbsentees(session, dateISO, roster, copyBtn);
+      });
       header.appendChild(copyBtn);
     }
     card.appendChild(header);
