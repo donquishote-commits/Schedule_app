@@ -481,4 +481,8 @@
   // ---------- Init ----------
   saveClasses(); // persist seed data on first run so it's there on next load too
   renderGrid();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch((e) => console.error('SW registration failed', e));
+  }
 })();
