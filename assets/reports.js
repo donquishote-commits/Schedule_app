@@ -349,25 +349,65 @@
     }
     tr.appendChild(partTd);
 
-    tr.appendChild(textInputCell(className, studentName, 'notebookReport', report.notebookReport));
-    tr.appendChild(textInputCell(className, studentName, 'behaviorReport', report.behaviorReport));
-    tr.appendChild(textInputCell(className, studentName, 'notes', report.notes));
+    tr.appendChild(textInputCell(className, studentName, 'notebookReport', report.notebookReport, 'تقرير الدفتر'));
+    tr.appendChild(textInputCell(className, studentName, 'behaviorReport', report.behaviorReport, 'تقرير السلوك'));
+    tr.appendChild(textInputCell(className, studentName, 'notes', report.notes, 'ملاحظات'));
 
     return tr;
   }
 
-  function textInputCell(className, studentName, field, value) {
+  // A plain text input truncates and can't be read back once a paragraph
+  // gets long, so these cells are a button showing a one-line preview;
+  // clicking opens a modal with a full-size textarea to actually read/edit.
+  function textInputCell(className, studentName, field, value, label) {
     const td = document.createElement('td');
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'report-input';
-    input.value = value || '';
-    input.addEventListener('input', () => {
-      setReportEntry(className, studentName, { [field]: input.value });
-    });
-    td.appendChild(input);
+    td.className = 'report-text-cell';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'report-text-preview';
+    if (!value) btn.classList.add('empty');
+    btn.textContent = value || '—';
+    btn.addEventListener('click', () => openNoteModal(className, studentName, field, label, btn));
+    td.appendChild(btn);
     return td;
   }
+
+  // ---------- Note edit modal ----------
+  const noteModal = document.getElementById('noteModal');
+  const noteModalTitle = document.getElementById('noteModalTitle');
+  const noteModalTextarea = document.getElementById('noteModalTextarea');
+  const noteModalForm = document.getElementById('noteModalForm');
+  let activeNote = null;
+
+  function openNoteModal(className, studentName, field, label, btn) {
+    activeNote = { className, studentName, field, btn };
+    noteModalTitle.textContent = `${label} — ${studentName}`;
+    noteModalTextarea.value = getReportEntry(className, studentName)[field] || '';
+    noteModal.hidden = false;
+    noteModalTextarea.focus();
+  }
+
+  function closeNoteModal() {
+    noteModal.hidden = true;
+    activeNote = null;
+  }
+
+  noteModalForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!activeNote) return;
+    const { className, studentName, field, btn } = activeNote;
+    const value = noteModalTextarea.value;
+    setReportEntry(className, studentName, { [field]: value });
+    btn.textContent = value || '—';
+    btn.classList.toggle('empty', !value);
+    closeNoteModal();
+  });
+
+  document.getElementById('cancelNoteBtn').addEventListener('click', closeNoteModal);
+  document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
+  noteModal.addEventListener('click', (e) => {
+    if (e.target === noteModal) closeNoteModal();
+  });
 
   // ---------- Init ----------
   render();

@@ -732,6 +732,42 @@ main {
   gap: 6px;
 }
 
+.report-text-preview {
+  display: block;
+  width: 100%;
+  min-width: 110px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.report-text-preview.empty {
+  color: var(--text-muted);
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 140px;
+  margin-top: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface);
+  resize: vertical;
+}
+
 /* ---------- Print / PDF export ---------- */
 
 .print-area {

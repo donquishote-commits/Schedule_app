@@ -40,6 +40,24 @@
 
 <div id="printArea" class="print-area"></div>
 
+<!-- Note edit modal (الدفتر / السلوك / ملاحظات) -->
+<div id="noteModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="noteModalTitle">ملاحظات</h2>
+      <button type="button" class="icon-btn" id="closeNoteModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="noteModalForm">
+      <textarea id="noteModalTextarea" class="note-textarea" rows="6" placeholder="اكتب هنا..."></textarea>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelNoteBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="assets/vendor/xlsx.full.min.js"></script>
 <script src="assets/reports.js"></script>
 </body>
