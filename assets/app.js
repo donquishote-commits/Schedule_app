@@ -454,6 +454,11 @@
       lines.push(`SUMMARY:${escapeICS(c.subject)}`);
       if (c.room) lines.push(`LOCATION:${escapeICS(c.room)}`);
       if (notes) lines.push(`DESCRIPTION:${escapeICS(notes)}`);
+      lines.push('BEGIN:VALARM');
+      lines.push('ACTION:DISPLAY');
+      lines.push(`DESCRIPTION:${escapeICS(c.subject)} بعد 10 دقائق`);
+      lines.push('TRIGGER:-PT10M');
+      lines.push('END:VALARM');
       lines.push('END:VEVENT');
     });
 
