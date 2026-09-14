@@ -7,7 +7,7 @@
   const REPORTS_KEY = 'schedule_app_reports_v1';
 
   const PARTICIPATION_SCALE = { excellent: 1, normal: 2, none: 3 };
-  const PARTICIPATION_LABELS = { 1: 'فعّال', 2: 'متوسط', 3: 'ضعيف' };
+  const PARTICIPATION_LABELS = { 1: 'ممتاز', 2: 'متوسط', 3: 'ضعيف' };
 
   function isolateLTR(text) {
     return `‭${text}‬`;

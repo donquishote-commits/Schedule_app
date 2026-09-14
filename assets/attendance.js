@@ -238,10 +238,10 @@
     });
     row.appendChild(attGroup);
 
-    // Participation
+    // Participation (right-to-left: ممتاز، متوسط، ضعيف)
     const partGroup = document.createElement('div');
     partGroup.className = 'control-group';
-    const PART_LEVELS = [['none', 'لا'], ['normal', 'عادي'], ['excellent', 'ممتاز']];
+    const PART_LEVELS = [['excellent', 'ممتاز'], ['normal', 'متوسط'], ['none', 'ضعيف']];
     PART_LEVELS.forEach(([value, label]) => {
       partGroup.appendChild(pillBtn(label, entry.participation === value, 'active-participation', () => {
         const next = entry.participation === value ? null : value;
@@ -251,11 +251,13 @@
     });
     row.appendChild(partGroup);
 
-    // Notebook
+    // Notebook: default assumption is that the student has it — the
+    // button only marks the exception (didn't bring it), same pattern
+    // as attendance defaulting to حاضر.
     const notebookGroup = document.createElement('div');
     notebookGroup.className = 'control-group';
-    notebookGroup.appendChild(pillBtn('الدفتر ✓', entry.notebook === true, 'active-notebook', () => {
-      setEntry(dateISO, session.id, studentName, { notebook: entry.notebook === true ? null : true });
+    notebookGroup.appendChild(pillBtn('لم يحضر الدفتر', entry.notebookMissing === true, 'active-absent', () => {
+      setEntry(dateISO, session.id, studentName, { notebookMissing: entry.notebookMissing === true ? null : true });
       render();
     }));
     row.appendChild(notebookGroup);
@@ -275,9 +277,10 @@
 
     const absBadge = document.createElement('span');
     absBadge.className = 'absence-badge';
-    const absN = countStatus(session.id, studentName, 'absent');
+    const presentN = countStatus(session.id, studentName, 'present');
     const lateN = countStatus(session.id, studentName, 'late');
-    absBadge.textContent = `غياب: ${absN} · تأخر: ${lateN}`;
+    const absN = countStatus(session.id, studentName, 'absent');
+    absBadge.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
     row.appendChild(absBadge);
 
     return row;

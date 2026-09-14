@@ -615,11 +615,6 @@ main {
   border-color: var(--primary);
   color: var(--primary-dark);
 }
-.pill-btn.active-notebook {
-  background: #eef1fb;
-  border-color: var(--primary);
-  color: var(--primary-dark);
-}
 .pill-btn.active-positive {
   background: #e6f4ea;
   border-color: #34a853;
@@ -635,7 +630,7 @@ main {
   font-size: 0.74rem;
   color: var(--text-muted);
   white-space: nowrap;
-  min-width: 120px;
+  min-width: 165px;
   text-align: left;
 }
 
