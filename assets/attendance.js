@@ -200,6 +200,9 @@
     const card = document.createElement('div');
     card.className = 'session-card';
 
+    const className = (session.room || '').trim();
+    const roster = students[className];
+
     const header = document.createElement('div');
     header.className = 'session-card-header';
     header.innerHTML = `
@@ -207,13 +210,18 @@
       <span class="session-meta">${escapeHTML(isolateLTR(session.room || ''))}</span>
       <span class="session-meta">${escapeHTML(periodLabelFor(session.periodKey))}</span>
     `;
+    if (roster && roster.length > 0) {
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn btn-ghost btn-small copy-absentees-btn';
+      copyBtn.textContent = 'نسخ أسماء الغياب';
+      copyBtn.addEventListener('click', () => copyAbsentees(session, dateISO, roster, copyBtn));
+      header.appendChild(copyBtn);
+    }
     card.appendChild(header);
 
     const body = document.createElement('div');
     body.className = 'session-card-body';
-
-    const className = (session.room || '').trim();
-    const roster = students[className];
 
     if (!roster || roster.length === 0) {
       const msg = document.createElement('div');
@@ -359,6 +367,29 @@
     tr.appendChild(statsTd);
 
     return tr;
+  }
+
+  // Copies the absent students' names (one per line) to the clipboard so
+  // they can be pasted straight into the school's own absence form.
+  async function copyAbsentees(session, dateISO, roster, btn) {
+    const absentees = roster.filter(name => statusOf(getEntry(dateISO, session.id, name)) === 'absent');
+
+    if (absentees.length === 0) {
+      alert('ما فيه طلاب غايبين بهذي الحصة اليوم.');
+      return;
+    }
+
+    const text = absentees.join('\n');
+    const originalLabel = btn.textContent;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = `✓ نُسخ (${absentees.length})`;
+    } catch (e) {
+      prompt('تعذّر النسخ التلقائي — انسخ الأسماء يدويًا من هنا:', text);
+      return;
+    }
+    setTimeout(() => { btn.textContent = originalLabel; }, 1800);
   }
 
   function pillBtn(label, active, activeClass, onClick) {
