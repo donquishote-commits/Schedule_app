@@ -125,7 +125,7 @@
 
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
-    ['اسم الطالب', 'حضور / تأخر / غياب', 'درجة الاختبار', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'].forEach((label, i) => {
+    ['اسم الطالب', 'حضور / تأخر / غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'].forEach((label, i) => {
       const th = document.createElement('th');
       th.textContent = label;
       if (i === 0) th.className = 'period-col-header report-name-col';
@@ -157,8 +157,20 @@
 
     const attTd = document.createElement('td');
     attTd.className = 'report-readonly';
-    attTd.textContent = isolateLTR(`${agg.present} / ${agg.late} / ${agg.absent}`);
+    // No isolateLTR here on purpose: this is pure digits/slashes with no
+    // Arabic letters, so the bidi algorithm already orders it correctly
+    // to match the RTL header (حضور / تأخر / غياب) — forcing it LTR (as
+    // an earlier version did) actually broke that alignment.
+    attTd.textContent = `${agg.present} / ${agg.late} / ${agg.absent}`;
     tr.appendChild(attTd);
+
+    const totalTd = document.createElement('td');
+    totalTd.className = 'report-readonly';
+    function updateTotal() {
+      const test = report.testScore !== undefined && report.testScore !== null ? report.testScore : null;
+      const coursework = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : null;
+      totalTd.textContent = (test === null && coursework === null) ? '—' : (test || 0) + (coursework || 0);
+    }
 
     const scoreTd = document.createElement('td');
     const scoreInput = document.createElement('input');
@@ -167,11 +179,29 @@
     scoreInput.placeholder = '—';
     scoreInput.value = report.testScore !== undefined && report.testScore !== null ? report.testScore : '';
     scoreInput.addEventListener('input', () => {
-      const v = scoreInput.value === '' ? null : Number(scoreInput.value);
-      setReportEntry(className, studentName, { testScore: v });
+      report.testScore = scoreInput.value === '' ? null : Number(scoreInput.value);
+      setReportEntry(className, studentName, { testScore: report.testScore });
+      updateTotal();
     });
     scoreTd.appendChild(scoreInput);
     tr.appendChild(scoreTd);
+
+    const courseworkTd = document.createElement('td');
+    const courseworkInput = document.createElement('input');
+    courseworkInput.type = 'number';
+    courseworkInput.className = 'report-input report-score-input';
+    courseworkInput.placeholder = '—';
+    courseworkInput.value = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : '';
+    courseworkInput.addEventListener('input', () => {
+      report.courseworkScore = courseworkInput.value === '' ? null : Number(courseworkInput.value);
+      setReportEntry(className, studentName, { courseworkScore: report.courseworkScore });
+      updateTotal();
+    });
+    courseworkTd.appendChild(courseworkInput);
+    tr.appendChild(courseworkTd);
+
+    updateTotal();
+    tr.appendChild(totalTd);
 
     const partTd = document.createElement('td');
     partTd.className = 'report-readonly';
