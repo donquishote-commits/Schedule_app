@@ -50,10 +50,18 @@
     { id: 'seed-6', day: 4, periodKey: 7, subject: 'الدستور', room: '12ع5', color: '#2f9e77', notes: [] },
   ];
 
-  // Isolate the LTR time range so the RTL bidi algorithm doesn't reorder
-  // "start - end" into "end - start".
+  // Forces strict left-to-right character order so the RTL bidi algorithm
+  // doesn't reorder digit runs around Arabic letters — e.g. "12د1" (a
+  // room/class code) rendering as "1د12". A plain isolate (LRI/PDI) isn't
+  // enough here: per bidi rule W2, a digit run right after an Arabic
+  // letter gets reclassified as an Arabic number and still reorders even
+  // inside an isolate, so this uses a full LTR override instead.
+  function isolateLTR(text) {
+    return `‭${text}‬`;
+  }
+
   function formatRange(start, end) {
-    return `⁦${start} - ${end}⁩`;
+    return isolateLTR(`${start} - ${end}`);
   }
 
   // ---------- State ----------
@@ -167,7 +175,7 @@
     if (c.room) {
       const meta = document.createElement('span');
       meta.className = 'meta';
-      meta.textContent = c.room;
+      meta.textContent = isolateLTR(c.room);
       block.appendChild(meta);
     }
 

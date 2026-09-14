@@ -1,10 +1,13 @@
-const CACHE_NAME = 'schedule-app-v4';
+const CACHE_NAME = 'schedule-app-v6';
 const ASSETS = [
   './',
   './index.html',
+  './students.html',
   './manifest.json',
   './assets/style.css',
   './assets/app.js',
+  './assets/students.js',
+  './assets/vendor/xlsx.full.min.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-180.png',
