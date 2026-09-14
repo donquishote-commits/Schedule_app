@@ -113,6 +113,10 @@ main {
 
 .period-col-header {
   width: 110px;
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
 }
 
 .period-label {
@@ -121,6 +125,10 @@ main {
   color: var(--text-muted);
   background: var(--bg);
   white-space: nowrap;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
 }
 
 .period-label .period-name {
