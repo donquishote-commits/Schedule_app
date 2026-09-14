@@ -87,6 +87,100 @@
     return { present, late, absent, participationAvg };
   }
 
+  // ---------- Export (Excel / PDF) ----------
+  const EXPORT_HEADER = ['اسم الطالب', 'حضور', 'تأخر', 'غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'];
+
+  function buildExportRows(className) {
+    const rows = [EXPORT_HEADER];
+    (students[className] || []).forEach(studentName => {
+      const agg = aggregateForStudent(className, studentName);
+      const report = getReportEntry(className, studentName);
+      const test = report.testScore !== undefined && report.testScore !== null ? report.testScore : null;
+      const coursework = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : null;
+      const total = (test === null && coursework === null) ? '' : (test || 0) + (coursework || 0);
+      const participationText = agg.participationAvg === null
+        ? ''
+        : `${PARTICIPATION_LABELS[Math.round(agg.participationAvg)]} (${agg.participationAvg.toFixed(1)})`;
+
+      rows.push([
+        studentName,
+        agg.present,
+        agg.late,
+        agg.absent,
+        test === null ? '' : test,
+        coursework === null ? '' : coursework,
+        total,
+        participationText,
+        report.notebookReport || '',
+        report.behaviorReport || '',
+        report.notes || '',
+      ]);
+    });
+    return rows;
+  }
+
+  // Class names can contain characters Excel forbids in a sheet name
+  // (: \ / ? * [ ]) and are capped at 31 chars.
+  function safeSheetName(className) {
+    return (className || 'تقرير').replace(/[:\\/?*[\]]/g, '-').slice(0, 31) || 'تقرير';
+  }
+
+  function safeFileName(className) {
+    return (className || 'تقرير').replace(/[\\/:*?"<>|]/g, '-');
+  }
+
+  function exportClassExcel(className) {
+    const rows = buildExportRows(className);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = EXPORT_HEADER.map((_, i) => ({ wch: i === 0 ? 20 : 14 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName(className));
+    XLSX.writeFile(wb, `${safeFileName(className)}.xlsx`);
+  }
+
+  const printArea = document.getElementById('printArea');
+
+  function exportClassPDF(className) {
+    const rows = buildExportRows(className);
+    const title = document.createElement('h2');
+    title.textContent = className;
+
+    const table = document.createElement('table');
+    table.className = 'print-table';
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    rows[0].forEach(label => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    rows.slice(1).forEach(rowData => {
+      const tr = document.createElement('tr');
+      rowData.forEach(cell => {
+        const td = document.createElement('td');
+        td.textContent = cell === '' || cell === null || cell === undefined ? '—' : cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    printArea.innerHTML = '';
+    printArea.appendChild(title);
+    printArea.appendChild(table);
+
+    document.body.classList.add('printing');
+    window.print();
+  }
+
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('printing');
+  });
+
   // ---------- Rendering ----------
   const container = document.getElementById('reportsContainer');
   const emptyState = document.getElementById('emptyState');
@@ -122,6 +216,31 @@
     countEl.className = 'student-count';
     countEl.textContent = `${(students[className] || []).length} طالب`;
     header.appendChild(countEl);
+
+    const exportBtns = document.createElement('div');
+    exportBtns.className = 'report-export-btns';
+
+    const excelBtn = document.createElement('button');
+    excelBtn.type = 'button';
+    excelBtn.className = 'btn btn-ghost btn-small';
+    excelBtn.textContent = 'تصدير Excel';
+    excelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportClassExcel(className);
+    });
+    exportBtns.appendChild(excelBtn);
+
+    const pdfBtn = document.createElement('button');
+    pdfBtn.type = 'button';
+    pdfBtn.className = 'btn btn-ghost btn-small';
+    pdfBtn.textContent = 'تصدير PDF';
+    pdfBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportClassPDF(className);
+    });
+    exportBtns.appendChild(pdfBtn);
+
+    header.appendChild(exportBtns);
 
     header.addEventListener('click', () => {
       if (openClasses.has(className)) openClasses.delete(className);
