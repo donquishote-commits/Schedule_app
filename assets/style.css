@@ -605,6 +605,11 @@ main {
   border-color: var(--danger);
   color: var(--danger);
 }
+.pill-btn.active-late {
+  background: #fef6e5;
+  border-color: #d99a1f;
+  color: #a06c0f;
+}
 .pill-btn.active-participation {
   background: #eef1fb;
   border-color: var(--primary);
@@ -630,11 +635,67 @@ main {
   font-size: 0.74rem;
   color: var(--text-muted);
   white-space: nowrap;
-  min-width: 70px;
+  min-width: 120px;
   text-align: left;
 }
 
 @media (max-width: 560px) {
   .student-row { align-items: flex-start; }
   .student-row .student-row-name { flex-basis: 100%; }
+}
+
+/* ---------- Reports page ---------- */
+
+#reportsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.report-card .class-card-header {
+  background: var(--surface);
+}
+
+.report-table-wrap {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+}
+
+.report-table {
+  min-width: 920px;
+}
+
+.report-name-col {
+  width: 130px;
+  white-space: normal;
+}
+
+.report-readonly {
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.report-input {
+  width: 100%;
+  min-width: 110px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.report-score-input {
+  min-width: 70px;
+  text-align: center;
+}
+
+.report-table td {
+  padding: 6px 8px;
 }

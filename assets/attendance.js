@@ -97,13 +97,43 @@
     saveAttendance();
   }
 
-  function absenceCount(classId, studentName) {
+  // Reads an entry's attendance status, translating the old boolean
+  // `present` field (from before "متأخر" existed) into the new
+  // 'present' | 'absent' | 'late' scheme so earlier data isn't lost.
+  function statusOf(entry) {
+    if (!entry) return undefined;
+    if (entry.status) return entry.status;
+    if (entry.present === false) return 'absent';
+    if (entry.present === true) return 'present';
+    return undefined;
+  }
+
+  // Makes sure every roster student for this session has an explicit
+  // attendance status, defaulting new ones to "حاضر". Only for
+  // today-or-earlier: attendance can't be taken for a day that hasn't
+  // happened, so future dates are left unrecorded until they arrive.
+  function ensureRecorded(dateISO, classId, rosterNames) {
+    if (dateISO > todayISO()) return;
+    const sk = sessionKey(dateISO, classId);
+    attendance[sk] = attendance[sk] || {};
+    let changed = false;
+    rosterNames.forEach(name => {
+      const entry = attendance[sk][name];
+      if (!statusOf(entry)) {
+        attendance[sk][name] = Object.assign({}, entry, { status: 'present' });
+        changed = true;
+      }
+    });
+    if (changed) saveAttendance();
+  }
+
+  function countStatus(classId, studentName, status) {
     const suffix = `::${classId}`;
     let count = 0;
     Object.keys(attendance).forEach(sk => {
       if (!sk.endsWith(suffix)) return;
       const entry = attendance[sk][studentName];
-      if (entry && entry.present === false) count++;
+      if (statusOf(entry) === status) count++;
     });
     return count;
   }
@@ -170,6 +200,7 @@
         : `هذي الحصة ما فيها اسم فصل محدد (حقل الغرفة فاضي). عدّلها من <a href="index.html">صفحة الجدول</a> حتى تربطها بقائمة الطلاب.`;
       body.appendChild(msg);
     } else {
+      ensureRecorded(dateISO, session.id, roster);
       roster.forEach(studentName => {
         body.appendChild(renderStudentRow(session, dateISO, studentName));
       });
@@ -181,7 +212,7 @@
 
   function renderStudentRow(session, dateISO, studentName) {
     const entry = getEntry(dateISO, session.id, studentName);
-    const isAbsent = entry.present === false;
+    const status = statusOf(entry);
 
     const row = document.createElement('div');
     row.className = 'student-row';
@@ -194,14 +225,17 @@
     // Attendance
     const attGroup = document.createElement('div');
     attGroup.className = 'control-group';
-    attGroup.appendChild(pillBtn('حاضر', !isAbsent, 'active-present', () => {
-      setEntry(dateISO, session.id, studentName, { present: true });
-      render();
-    }));
-    attGroup.appendChild(pillBtn('غائب', isAbsent, 'active-absent', () => {
-      setEntry(dateISO, session.id, studentName, { present: false });
-      render();
-    }));
+    const ATT_STATUSES = [
+      ['present', 'حاضر', 'active-present'],
+      ['late', 'متأخر', 'active-late'],
+      ['absent', 'غائب', 'active-absent'],
+    ];
+    ATT_STATUSES.forEach(([value, label, activeClass]) => {
+      attGroup.appendChild(pillBtn(label, status === value, activeClass, () => {
+        setEntry(dateISO, session.id, studentName, { status: value, present: undefined });
+        render();
+      }));
+    });
     row.appendChild(attGroup);
 
     // Participation
@@ -241,7 +275,9 @@
 
     const absBadge = document.createElement('span');
     absBadge.className = 'absence-badge';
-    absBadge.textContent = `غياب: ${absenceCount(session.id, studentName)}`;
+    const absN = countStatus(session.id, studentName, 'absent');
+    const lateN = countStatus(session.id, studentName, 'late');
+    absBadge.textContent = `غياب: ${absN} · تأخر: ${lateN}`;
     row.appendChild(absBadge);
 
     return row;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>المتابعة اليومية</title>
+<title>التقارير</title>
 <link rel="stylesheet" href="assets/style.css">
 
 <link rel="manifest" href="manifest.json">
@@ -18,27 +18,25 @@
 <body>
 
 <header class="topbar">
-  <h1>المتابعة اليومية</h1>
+  <h1>التقارير</h1>
   <div class="topbar-actions">
     <a href="index.html" class="btn btn-ghost">جدولي</a>
     <a href="students.html" class="btn btn-ghost">قوائم الفصول</a>
-    <a href="reports.html" class="btn btn-ghost">التقارير</a>
+    <a href="attendance.html" class="btn btn-ghost">المتابعة اليومية</a>
   </div>
 </header>
 
 <main>
-  <div class="date-bar">
-    <button id="prevDayBtn" class="btn btn-ghost icon-btn-round" aria-label="اليوم السابق">◀</button>
-    <input type="date" id="datePicker">
-    <button id="nextDayBtn" class="btn btn-ghost icon-btn-round" aria-label="اليوم التالي">▶</button>
-    <button id="todayBtn" class="btn btn-ghost">اليوم</button>
-    <span id="dayLabel" class="day-label"></span>
-  </div>
+  <p class="hint-text">
+    الحضور/التأخر/الغياب والمشاركة تُحسب تلقائيًا من صفحة "المتابعة اليومية".
+    درجة الاختبار والدفتر والسلوك والملاحظات تكتبها بنفسك هنا وتبقى محفوظة.
+    كل شي هنا خاص بجهازك بس.
+  </p>
 
-  <div id="sessionsContainer"></div>
-  <div id="noScheduleState" class="empty-state" hidden>ما فيه حصص مجدولة بهذا اليوم.</div>
+  <div id="reportsContainer"></div>
+  <div id="emptyState" class="empty-state" hidden>ما فيه فصول بعد. أضف فصولك من صفحة قوائم الفصول أولًا.</div>
 </main>
 
-<script src="assets/attendance.js"></script>
+<script src="assets/reports.js"></script>
 </body>
 </html>
