@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Schedule</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>My Schedule</h1>
+  <div class="topbar-actions">
+    <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
+    <button id="exportBtn" class="btn btn-ghost" title="Download a backup of your schedule">Export</button>
+    <button id="importBtn" class="btn btn-ghost" title="Restore a schedule from a backup file">Import</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <div id="grid" class="grid"></div>
+</main>
+
+<!-- Class editor modal -->
+<div id="classModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Class</h2>
+      <button class="icon-btn" id="closeModalBtn" aria-label="Close">&times;</button>
+    </div>
+
+    <form id="classForm">
+      <input type="hidden" id="classId">
+
+      <label>Subject
+        <input type="text" id="subject" required placeholder="e.g. Philosophy 101">
+      </label>
+
+      <label>Room / Location
+        <input type="text" id="room" placeholder="e.g. Room 214">
+      </label>
+
+      <div class="row">
+        <label>Day
+          <select id="day"></select>
+        </label>
+        <label>Color
+          <input type="color" id="color" value="#5b7fdb">
+        </label>
+      </div>
+
+      <div class="row">
+        <label>Start
+          <input type="time" id="startTime" required>
+        </label>
+        <label>End
+          <input type="time" id="endTime" required>
+        </label>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="deleteBtn" class="btn btn-danger" hidden>Delete</button>
+        <div class="spacer"></div>
+        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+
+    <div id="notesSection" class="notes-section" hidden>
+      <h3>Notes &amp; To-dos</h3>
+      <ul id="notesList" class="notes-list"></ul>
+      <form id="noteForm" class="note-form">
+        <input type="text" id="noteText" placeholder="Add a note or to-do..." required>
+        <button type="submit" class="btn btn-primary btn-small">Add</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
