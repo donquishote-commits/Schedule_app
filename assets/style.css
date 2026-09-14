@@ -722,6 +722,10 @@ main {
   padding: 6px 8px;
 }
 
+.report-table th {
+  white-space: nowrap;
+}
+
 /* Clearer dividers between columns than the grid's default hairline,
    and a colored accent on the sticky name column so it reads as the
    anchor while the tracked columns scroll past it. */
