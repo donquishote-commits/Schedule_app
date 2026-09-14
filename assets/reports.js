@@ -8,6 +8,8 @@
 
   const PARTICIPATION_SCALE = { excellent: 1, normal: 2, none: 3 };
   const PARTICIPATION_LABELS = { 1: 'ممتاز', 2: 'متوسط', 3: 'ضعيف' };
+  const PARTICIPATION_DEFAULT = 2; // متوسط — used for days the student attended but wasn't rated
+  const PARTICIPATION_START_DATE = '2026-12-20'; // only count participation from this date on
 
   function isolateLTR(text) {
     return `‭${text}‬`;
@@ -61,7 +63,7 @@
     let participationSum = 0, participationCount = 0;
 
     Object.keys(attendance).forEach(sk => {
-      const idPart = sk.split('::')[1];
+      const [date, idPart] = sk.split('::');
       if (!ids.includes(idPart)) return;
       const entry = attendance[sk][studentName];
       if (!entry) return;
@@ -71,8 +73,12 @@
       else if (status === 'late') late++;
       else if (status === 'absent') absent++;
 
-      if (entry.participation && PARTICIPATION_SCALE[entry.participation] !== undefined) {
-        participationSum += PARTICIPATION_SCALE[entry.participation];
+      // Participation only counts from PARTICIPATION_START_DATE on, and
+      // only for days the student actually attended. A day they attended
+      // but wasn't explicitly rated counts as متوسط by default.
+      if (date >= PARTICIPATION_START_DATE && (status === 'present' || status === 'late')) {
+        const rated = entry.participation && PARTICIPATION_SCALE[entry.participation] !== undefined;
+        participationSum += rated ? PARTICIPATION_SCALE[entry.participation] : PARTICIPATION_DEFAULT;
         participationCount++;
       }
     });
