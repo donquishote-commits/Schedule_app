@@ -90,6 +90,7 @@
   // ---------- Rendering ----------
   const container = document.getElementById('reportsContainer');
   const emptyState = document.getElementById('emptyState');
+  let openClasses = new Set(); // which class report cards are expanded — collapsed by default
 
   function render() {
     container.innerHTML = '';
@@ -102,11 +103,17 @@
 
   function renderClassReport(className) {
     const wrap = document.createElement('div');
-    wrap.className = 'class-card open report-card';
+    wrap.className = 'class-card report-card';
+    if (openClasses.has(className)) wrap.classList.add('open');
 
     const header = document.createElement('div');
     header.className = 'class-card-header';
-    header.style.cursor = 'default';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = '◀';
+    header.appendChild(chevron);
+
     const nameEl = document.createElement('span');
     nameEl.className = 'class-name';
     nameEl.textContent = isolateLTR(className);
@@ -115,33 +122,43 @@
     countEl.className = 'student-count';
     countEl.textContent = `${(students[className] || []).length} طالب`;
     header.appendChild(countEl);
+
+    header.addEventListener('click', () => {
+      if (openClasses.has(className)) openClasses.delete(className);
+      else openClasses.add(className);
+      render();
+    });
+
     wrap.appendChild(header);
 
-    const scrollWrap = document.createElement('div');
-    scrollWrap.className = 'schedule-wrap report-table-wrap';
+    if (openClasses.has(className)) {
+      const scrollWrap = document.createElement('div');
+      scrollWrap.className = 'schedule-wrap report-table-wrap';
 
-    const table = document.createElement('table');
-    table.className = 'grid report-table';
+      const table = document.createElement('table');
+      table.className = 'grid report-table';
 
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    ['اسم الطالب', 'حضور / تأخر / غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'].forEach((label, i) => {
-      const th = document.createElement('th');
-      th.textContent = label;
-      if (i === 0) th.className = 'period-col-header report-name-col';
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['اسم الطالب', 'حضور / تأخر / غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'].forEach((label, i) => {
+        const th = document.createElement('th');
+        th.textContent = label;
+        if (i === 0) th.className = 'period-col-header report-name-col';
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
 
-    const tbody = document.createElement('tbody');
-    (students[className] || []).forEach(studentName => {
-      tbody.appendChild(renderStudentReportRow(className, studentName));
-    });
-    table.appendChild(tbody);
+      const tbody = document.createElement('tbody');
+      (students[className] || []).forEach(studentName => {
+        tbody.appendChild(renderStudentReportRow(className, studentName));
+      });
+      table.appendChild(tbody);
 
-    scrollWrap.appendChild(table);
-    wrap.appendChild(scrollWrap);
+      scrollWrap.appendChild(table);
+      wrap.appendChild(scrollWrap);
+    }
+
     return wrap;
   }
 
