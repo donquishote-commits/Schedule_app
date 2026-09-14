@@ -94,6 +94,7 @@ main {
   width: 100%;
   min-width: 680px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .grid th, .grid td {
@@ -146,6 +147,7 @@ main {
   padding: 4px;
   cursor: pointer;
   transition: background 0.1s;
+  overflow: hidden;
 }
 
 .class-cell:hover {
@@ -172,6 +174,7 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .class-block .meta {
@@ -180,6 +183,7 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.72rem;
+  min-width: 0;
 }
 
 .class-block .note-dot {
