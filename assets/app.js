@@ -1,12 +1,36 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'schedule_app_classes_v1';
-  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  const START_HOUR = 7;   // grid starts at 7:00
-  const END_HOUR = 19;    // grid ends at 19:00
-  const HOUR_PX = 56;     // must match --hour-height in style.css
+  const STORAGE_KEY = 'schedule_app_classes_ar_v1';
+
+  const DAYS = [
+    { key: 0, label: 'الأحد' },
+    { key: 1, label: 'الإثنين' },
+    { key: 2, label: 'الثلاثاء' },
+    { key: 3, label: 'الأربعاء' },
+    { key: 4, label: 'الخميس' },
+  ];
+
+  // Fixed daily timetable: class periods and recesses, in order.
+  const PERIODS = [
+    { type: 'class', key: 1, label: 'الحصة الأولى', start: '7:55', end: '8:40' },
+    { type: 'class', key: 2, label: 'الحصة الثانية', start: '8:45', end: '9:30' },
+    { type: 'class', key: 3, label: 'الحصة الثالثة', start: '9:35', end: '10:20' },
+    { type: 'break', key: 'b1', label: 'الفرصة الأولى', start: '10:20', end: '10:35' },
+    { type: 'class', key: 4, label: 'الحصة الرابعة', start: '10:35', end: '11:20' },
+    { type: 'class', key: 5, label: 'الحصة الخامسة', start: '11:25', end: '12:10' },
+    { type: 'break', key: 'b2', label: 'الفرصة الثانية', start: '12:10', end: '12:20' },
+    { type: 'class', key: 6, label: 'الحصة السادسة', start: '12:20', end: '1:05' },
+    { type: 'class', key: 7, label: 'الحصة السابعة', start: '1:10', end: '1:55' },
+  ];
+
+  const CLASS_PERIODS = PERIODS.filter(p => p.type === 'class');
+
+  // Isolate the LTR time range so the RTL bidi algorithm doesn't reorder
+  // "start - end" into "end - start".
+  function formatRange(start, end) {
+    return `⁦${start} - ${end}⁩`;
+  }
 
   // ---------- State ----------
   let classes = loadClasses();
@@ -31,19 +55,8 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
-  // ---------- Time helpers ----------
-  function timeToMinutes(t) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  }
-
-  function minutesToLabel(mins) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    const period = h >= 12 ? 'PM' : 'AM';
-    let h12 = h % 12;
-    if (h12 === 0) h12 = 12;
-    return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+  function findClass(day, periodKey) {
+    return classes.find(c => c.day === day && c.periodKey === periodKey);
   }
 
   // ---------- Grid rendering ----------
@@ -51,78 +64,74 @@
 
   function renderGrid() {
     gridEl.innerHTML = '';
-    gridEl.style.gridTemplateColumns = `60px repeat(${DAYS.length}, 1fr)`;
-    const totalHours = END_HOUR - START_HOUR;
-    gridEl.style.gridTemplateRows = `36px ${totalHours * HOUR_PX}px`;
 
-    // Header row
-    const cornerHeader = document.createElement('div');
-    cornerHeader.className = 'grid-header time-col-header';
-    gridEl.appendChild(cornerHeader);
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
 
-    DAY_NAMES.forEach(name => {
-      const h = document.createElement('div');
-      h.className = 'grid-header';
-      h.textContent = name;
-      gridEl.appendChild(h);
+    const cornerHeader = document.createElement('th');
+    cornerHeader.className = 'period-col-header';
+    cornerHeader.textContent = 'الحصة';
+    headRow.appendChild(cornerHeader);
+
+    DAYS.forEach(day => {
+      const th = document.createElement('th');
+      th.textContent = day.label;
+      headRow.appendChild(th);
     });
 
-    // Time label column
-    const timeCol = document.createElement('div');
-    timeCol.style.position = 'relative';
-    timeCol.style.height = `${totalHours * HOUR_PX}px`;
-    for (let h = START_HOUR; h < END_HOUR; h++) {
-      const label = document.createElement('div');
-      label.className = 'time-label';
-      label.style.height = `${HOUR_PX}px`;
-      label.textContent = minutesToLabel(h * 60);
-      timeCol.appendChild(label);
-    }
-    gridEl.appendChild(timeCol);
+    thead.appendChild(headRow);
+    gridEl.appendChild(thead);
 
-    // Day columns
-    DAYS.forEach((day, dayIndex) => {
-      const col = document.createElement('div');
-      col.className = 'day-col';
-      col.style.height = `${totalHours * HOUR_PX}px`;
-      col.dataset.day = dayIndex;
+    const tbody = document.createElement('tbody');
 
-      col.addEventListener('click', (e) => {
-        if (e.target !== col) return; // ignore clicks on class blocks
-        const rect = col.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const minutesFromStart = (y / HOUR_PX) * 60;
-        let totalMins = START_HOUR * 60 + minutesFromStart;
-        totalMins = Math.round(totalMins / 15) * 15; // snap to 15 min
-        openAddModal(dayIndex, totalMins);
+    PERIODS.forEach(period => {
+      const tr = document.createElement('tr');
+
+      if (period.type === 'break') {
+        tr.className = 'break-row';
+        const td = document.createElement('td');
+        td.colSpan = DAYS.length + 1;
+        td.textContent = `${period.label} (${formatRange(period.start, period.end)})`;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      const labelTd = document.createElement('td');
+      labelTd.className = 'period-label';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'period-name';
+      nameSpan.textContent = period.label;
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'period-time';
+      timeSpan.textContent = formatRange(period.start, period.end);
+      labelTd.appendChild(nameSpan);
+      labelTd.appendChild(timeSpan);
+      tr.appendChild(labelTd);
+
+      DAYS.forEach(day => {
+        const td = document.createElement('td');
+        td.className = 'class-cell';
+        const existing = findClass(day.key, period.key);
+
+        if (existing) {
+          td.appendChild(renderClassBlock(existing));
+        } else {
+          td.addEventListener('click', () => openAddModal(day.key, period.key));
+        }
+
+        tr.appendChild(td);
       });
 
-      classes
-        .filter(c => c.day === dayIndex)
-        .forEach(c => col.appendChild(renderClassBlock(c)));
-
-      gridEl.appendChild(col);
+      tbody.appendChild(tr);
     });
 
-    if (classes.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = 'No classes yet — click "+ Add Class" or click anywhere on the grid to add one.';
-      empty.style.gridColumn = `1 / span ${DAYS.length + 1}`;
-      gridEl.appendChild(empty);
-    }
+    gridEl.appendChild(tbody);
   }
 
   function renderClassBlock(c) {
     const block = document.createElement('div');
     block.className = 'class-block';
-    const startMin = timeToMinutes(c.startTime);
-    const endMin = timeToMinutes(c.endTime);
-    const top = ((startMin - START_HOUR * 60) / 60) * HOUR_PX;
-    const height = Math.max(((endMin - startMin) / 60) * HOUR_PX, 20);
-
-    block.style.top = `${top}px`;
-    block.style.height = `${height}px`;
     block.style.background = c.color || '#5b7fdb';
 
     const subject = document.createElement('span');
@@ -130,10 +139,12 @@
     subject.textContent = c.subject;
     block.appendChild(subject);
 
-    const meta = document.createElement('span');
-    meta.className = 'meta';
-    meta.textContent = [minutesToLabel(startMin), c.room].filter(Boolean).join(' · ');
-    block.appendChild(meta);
+    if (c.room) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = c.room;
+      block.appendChild(meta);
+    }
 
     if (c.notes && c.notes.length > 0) {
       const dot = document.createElement('span');
@@ -141,7 +152,10 @@
       block.appendChild(dot);
     }
 
-    block.addEventListener('click', () => openEditModal(c.id));
+    block.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditModal(c.id);
+    });
     return block;
   }
 
@@ -150,17 +164,25 @@
   const modalTitle = document.getElementById('modalTitle');
   const classForm = document.getElementById('classForm');
   const daySelect = document.getElementById('day');
+  const periodSelect = document.getElementById('period');
   const deleteBtn = document.getElementById('deleteBtn');
   const notesSection = document.getElementById('notesSection');
   const notesList = document.getElementById('notesList');
   const noteForm = document.getElementById('noteForm');
   const noteText = document.getElementById('noteText');
 
-  DAY_NAMES.forEach((name, i) => {
+  DAYS.forEach(day => {
     const opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = name;
+    opt.value = day.key;
+    opt.textContent = day.label;
     daySelect.appendChild(opt);
+  });
+
+  CLASS_PERIODS.forEach(period => {
+    const opt = document.createElement('option');
+    opt.value = period.key;
+    opt.textContent = `${period.label} (${formatRange(period.start, period.end)})`;
+    periodSelect.appendChild(opt);
   });
 
   function openModal() {
@@ -173,20 +195,16 @@
     editingId = null;
   }
 
-  function openAddModal(dayIndex = 0, startMinutes = 9 * 60) {
+  function openAddModal(dayKey, periodKey) {
     editingId = null;
-    modalTitle.textContent = 'Add Class';
+    modalTitle.textContent = 'إضافة حصة';
     deleteBtn.hidden = true;
     notesSection.hidden = true;
     classForm.reset();
     document.getElementById('classId').value = '';
-    daySelect.value = dayIndex;
+    daySelect.value = dayKey;
+    periodSelect.value = periodKey;
     document.getElementById('color').value = '#5b7fdb';
-
-    const clampedStart = Math.min(Math.max(startMinutes, START_HOUR * 60), (END_HOUR - 1) * 60);
-    document.getElementById('startTime').value = minutesToHHMM(clampedStart);
-    document.getElementById('endTime').value = minutesToHHMM(clampedStart + 60);
-
     openModal();
   }
 
@@ -194,7 +212,7 @@
     const c = classes.find(x => x.id === id);
     if (!c) return;
     editingId = id;
-    modalTitle.textContent = 'Edit Class';
+    modalTitle.textContent = 'تعديل الحصة';
     deleteBtn.hidden = false;
     notesSection.hidden = false;
 
@@ -202,18 +220,11 @@
     document.getElementById('subject').value = c.subject;
     document.getElementById('room').value = c.room || '';
     daySelect.value = c.day;
+    periodSelect.value = c.periodKey;
     document.getElementById('color').value = c.color || '#5b7fdb';
-    document.getElementById('startTime').value = c.startTime;
-    document.getElementById('endTime').value = c.endTime;
 
     renderNotes(c);
     openModal();
-  }
-
-  function minutesToHHMM(mins) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
   function renderNotes(c) {
@@ -254,7 +265,9 @@
   }
 
   // ---------- Form handlers ----------
-  document.getElementById('addClassBtn').addEventListener('click', () => openAddModal());
+  document.getElementById('addClassBtn').addEventListener('click', () => {
+    openAddModal(DAYS[0].key, CLASS_PERIODS[0].key);
+  });
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
   document.getElementById('cancelBtn').addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => {
@@ -266,22 +279,22 @@
     const subject = document.getElementById('subject').value.trim();
     const room = document.getElementById('room').value.trim();
     const day = Number(daySelect.value);
+    const periodKey = isNaN(Number(periodSelect.value)) ? periodSelect.value : Number(periodSelect.value);
     const color = document.getElementById('color').value;
-    const startTime = document.getElementById('startTime').value;
-    const endTime = document.getElementById('endTime').value;
 
-    if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
-      alert('End time must be after start time.');
+    const conflict = findClass(day, periodKey);
+    if (conflict && conflict.id !== editingId) {
+      alert('هناك حصة أخرى في هذا الوقت. عدّل تلك الحصة أو اختر وقتًا آخر.');
       return;
     }
 
     if (editingId) {
       const c = classes.find(x => x.id === editingId);
-      Object.assign(c, { subject, room, day, color, startTime, endTime });
+      Object.assign(c, { subject, room, day, periodKey, color });
     } else {
       classes.push({
         id: uid(),
-        subject, room, day, color, startTime, endTime,
+        subject, room, day, periodKey, color,
         notes: [],
       });
     }
@@ -293,7 +306,7 @@
 
   deleteBtn.addEventListener('click', () => {
     if (!editingId) return;
-    if (!confirm('Delete this class? This also removes its notes.')) return;
+    if (!confirm('حذف هذه الحصة؟ سيتم حذف ملاحظاتها أيضًا.')) return;
     classes = classes.filter(c => c.id !== editingId);
     saveClasses();
     renderGrid();
@@ -339,7 +352,7 @@
       try {
         const data = JSON.parse(reader.result);
         if (!Array.isArray(data)) throw new Error('Invalid format');
-        if (classes.length > 0 && !confirm('Importing will replace your current schedule. Continue?')) {
+        if (classes.length > 0 && !confirm('سيؤدي الاستيراد إلى استبدال الجدول الحالي. هل تريد المتابعة؟')) {
           importFile.value = '';
           return;
         }
@@ -347,7 +360,7 @@
         saveClasses();
         renderGrid();
       } catch (err) {
-        alert('Could not read that file — make sure it\'s a schedule backup exported from this app.');
+        alert('تعذّرت قراءة هذا الملف — تأكد من أنه نسخة احتياطية صادرة من هذا التطبيق.');
       } finally {
         importFile.value = '';
       }

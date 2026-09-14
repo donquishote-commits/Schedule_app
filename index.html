@@ -1,78 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Class Schedule</title>
+<title>جدول الحصص</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <header class="topbar">
-  <h1>My Schedule</h1>
+  <h1>جدولي</h1>
   <div class="topbar-actions">
-    <button id="addClassBtn" class="btn btn-primary">+ Add Class</button>
-    <button id="exportBtn" class="btn btn-ghost" title="Download a backup of your schedule">Export</button>
-    <button id="importBtn" class="btn btn-ghost" title="Restore a schedule from a backup file">Import</button>
+    <button id="addClassBtn" class="btn btn-primary">+ إضافة حصة</button>
+    <button id="exportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية من الجدول">تصدير</button>
+    <button id="importBtn" class="btn btn-ghost" title="استعادة الجدول من نسخة احتياطية">استيراد</button>
     <input type="file" id="importFile" accept="application/json" hidden>
   </div>
 </header>
 
 <main>
-  <div id="grid" class="grid"></div>
+  <div class="schedule-wrap">
+    <table id="grid" class="grid"></table>
+  </div>
 </main>
 
 <!-- Class editor modal -->
 <div id="classModal" class="modal-backdrop" hidden>
   <div class="modal">
     <div class="modal-header">
-      <h2 id="modalTitle">Add Class</h2>
-      <button class="icon-btn" id="closeModalBtn" aria-label="Close">&times;</button>
+      <h2 id="modalTitle">إضافة حصة</h2>
+      <button class="icon-btn" id="closeModalBtn" aria-label="إغلاق">&times;</button>
     </div>
 
     <form id="classForm">
       <input type="hidden" id="classId">
 
-      <label>Subject
-        <input type="text" id="subject" required placeholder="e.g. Philosophy 101">
+      <label>المادة
+        <input type="text" id="subject" required placeholder="مثال: فلسفة">
       </label>
 
-      <label>Room / Location
-        <input type="text" id="room" placeholder="e.g. Room 214">
+      <label>الغرفة / القاعة
+        <input type="text" id="room" placeholder="مثال: قاعة 214">
       </label>
 
       <div class="row">
-        <label>Day
+        <label>اليوم
           <select id="day"></select>
         </label>
-        <label>Color
-          <input type="color" id="color" value="#5b7fdb">
+        <label>الحصة
+          <select id="period"></select>
         </label>
       </div>
 
-      <div class="row">
-        <label>Start
-          <input type="time" id="startTime" required>
-        </label>
-        <label>End
-          <input type="time" id="endTime" required>
-        </label>
-      </div>
+      <label>اللون
+        <input type="color" id="color" value="#5b7fdb">
+      </label>
 
       <div class="modal-footer">
-        <button type="button" id="deleteBtn" class="btn btn-danger" hidden>Delete</button>
+        <button type="button" id="deleteBtn" class="btn btn-danger" hidden>حذف</button>
         <div class="spacer"></div>
-        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" id="cancelBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
       </div>
     </form>
 
     <div id="notesSection" class="notes-section" hidden>
-      <h3>Notes &amp; To-dos</h3>
+      <h3>ملاحظات ومهام</h3>
       <ul id="notesList" class="notes-list"></ul>
       <form id="noteForm" class="note-form">
-        <input type="text" id="noteText" placeholder="Add a note or to-do..." required>
-        <button type="submit" class="btn btn-primary btn-small">Add</button>
+        <input type="text" id="noteText" placeholder="أضف ملاحظة أو مهمة..." required>
+        <button type="submit" class="btn btn-primary btn-small">إضافة</button>
       </form>
     </div>
   </div>

@@ -1,7 +1,9 @@
 # Schedule App
 
-A simple weekly class schedule. Click anywhere on the grid (or "+ Add Class")
-to add a class, click an existing class to edit it or attach notes/to-dos.
+جدول أسبوعي للحصص الدراسية، بالعربية ومن اليمين لليسار. الأسبوع من الأحد
+إلى الخميس، بحصص ثابتة (سبع حصص وفرصتان) بدل شبكة زمنية حرة. اضغط على أي
+خانة في الجدول أو زر "+ إضافة حصة" لإضافة حصة، واضغط على حصة موجودة لتعديلها
+أو لإضافة ملاحظات ومهام لها.
 
 No build step, no backend — just static HTML/CSS/JS. Data is saved in your
 browser's local storage, so it stays on whichever device/browser you use it

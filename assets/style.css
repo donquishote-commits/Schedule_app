@@ -7,15 +7,17 @@
   --primary: #5b7fdb;
   --primary-dark: #4763b8;
   --danger: #d9534f;
+  --break-bg: #fdf6e3;
+  --break-text: #9a7b1f;
   --radius: 10px;
-  --hour-height: 56px;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  direction: rtl;
+  font-family: Tahoma, "Segoe UI", "Noto Sans Arabic", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
@@ -52,6 +54,7 @@ body {
   font-size: 0.9rem;
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
+  font-family: inherit;
 }
 
 .btn-primary {
@@ -78,101 +81,120 @@ body {
 
 main {
   padding: 16px;
+}
+
+.schedule-wrap {
   overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .grid {
-  display: grid;
-  min-width: 640px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
 }
 
-.grid-header {
+.grid th, .grid td {
+  border: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.grid thead th {
+  padding: 10px 6px;
+  font-size: 0.9rem;
+  background: var(--surface);
   position: sticky;
   top: 0;
-  background: var(--surface);
-  font-weight: 600;
-  text-align: center;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--border);
-  border-left: 1px solid var(--border);
-  font-size: 0.85rem;
 }
 
-.time-col-header {
-  border-left: none;
+.period-col-header {
+  width: 110px;
 }
 
-.time-label {
-  font-size: 0.72rem;
+.period-label {
+  padding: 6px;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  text-align: right;
-  padding-right: 8px;
-  border-top: 1px solid var(--border);
-  position: relative;
-  top: -6px;
+  background: var(--bg);
+  white-space: nowrap;
 }
 
-.day-col {
-  position: relative;
-  border-left: 1px solid var(--border);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--border) 0,
-    var(--border) 1px,
-    transparent 1px,
-    transparent var(--hour-height)
-  );
+.period-label .period-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.period-label .period-time {
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.break-row td {
+  background: var(--break-bg);
+  color: var(--break-text);
+  font-size: 0.8rem;
+  padding: 4px;
+}
+
+.class-cell {
+  height: 64px;
+  padding: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.class-cell:hover {
+  background: var(--bg);
 }
 
 .class-block {
-  position: absolute;
-  left: 3px;
-  right: 3px;
+  position: relative;
+  height: 100%;
+  min-height: 54px;
   border-radius: 6px;
-  padding: 4px 6px;
+  padding: 6px 8px;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   overflow: hidden;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-  transition: filter 0.1s;
 }
-.class-block:hover { filter: brightness(1.08); }
 
 .class-block .subject {
   font-weight: 600;
-  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .class-block .meta {
-  display: block;
   opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.72rem;
 }
 
 .class-block .note-dot {
   position: absolute;
   top: 4px;
-  right: 4px;
+  left: 4px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: white;
 }
 
-.empty-state {
-  padding: 40px 20px;
-  text-align: center;
+.empty-cell-hint {
   color: var(--text-muted);
+  font-size: 1.1rem;
 }
 
 /* Modal */
@@ -230,7 +252,6 @@ main {
 }
 
 #classForm input[type="text"],
-#classForm input[type="time"],
 #classForm select {
   width: 100%;
   margin-top: 4px;
@@ -240,6 +261,7 @@ main {
   font-size: 0.95rem;
   color: var(--text);
   background: var(--surface);
+  font-family: inherit;
 }
 
 #classForm input[type="color"] {
@@ -256,14 +278,6 @@ main {
   gap: 12px;
 }
 .row > label { flex: 1; }
-
-.repeat-label {
-  display: flex !important;
-  align-items: center;
-  gap: 6px;
-  margin-top: 14px;
-}
-.repeat-label input { width: auto; margin: 0; }
 
 .modal-footer {
   display: flex;
@@ -332,6 +346,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.9rem;
+  font-family: inherit;
 }
 
 @media (max-width: 480px) {
