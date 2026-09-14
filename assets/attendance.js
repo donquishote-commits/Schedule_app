@@ -256,9 +256,14 @@
     return card;
   }
 
+  // Builds the row once, then every click updates only that button's
+  // class (and the stats text) in place — the table/scroll container is
+  // never touched again, so there's nothing for a click to "jump" or
+  // reset. (An earlier version called the full render() on every click,
+  // which rebuilt the whole table and reset horizontal scroll on some
+  // devices even with scroll-position save/restore.)
   function renderStudentRow(session, dateISO, studentName) {
     const entry = getEntry(dateISO, session.id, studentName);
-    const status = statusOf(entry);
 
     const tr = document.createElement('tr');
 
@@ -267,7 +272,16 @@
     nameTd.textContent = studentName;
     tr.appendChild(nameTd);
 
-    // Attendance
+    const statsTd = document.createElement('td');
+    statsTd.className = 'attendance-stats-cell';
+    function updateStats() {
+      const presentN = countStatus(session.id, studentName, 'present');
+      const lateN = countStatus(session.id, studentName, 'late');
+      const absN = countStatus(session.id, studentName, 'absent');
+      statsTd.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
+    }
+
+    // Attendance (single-select among 3 — always exactly one active)
     const attTd = document.createElement('td');
     const attGroup = document.createElement('div');
     attGroup.className = 'control-group';
@@ -276,26 +290,33 @@
       ['late', 'متأخر', 'active-late'],
       ['absent', 'غائب', 'active-absent'],
     ];
-    ATT_STATUSES.forEach(([value, label, activeClass]) => {
-      attGroup.appendChild(pillBtn(label, status === value, activeClass, () => {
+    const attButtons = ATT_STATUSES.map(([value, label, activeClass]) => {
+      const btn = pillBtn(label, statusOf(entry) === value, activeClass, () => {
         setEntry(dateISO, session.id, studentName, { status: value, present: undefined });
-        render();
-      }));
+        attButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === value ? ` ${b.activeClass}` : ''); });
+        updateStats();
+      });
+      attGroup.appendChild(btn);
+      return { value, activeClass, btn };
     });
     attTd.appendChild(attGroup);
     tr.appendChild(attTd);
 
-    // Participation (right-to-left: ممتاز، متوسط، ضعيف)
+    // Participation (right-to-left: ممتاز، متوسط، ضعيف — toggle: click
+    // the active one again to unset)
     const partTd = document.createElement('td');
     const partGroup = document.createElement('div');
     partGroup.className = 'control-group';
+    let currentParticipation = entry.participation || null;
     const PART_LEVELS = [['excellent', 'ممتاز'], ['normal', 'متوسط'], ['none', 'ضعيف']];
-    PART_LEVELS.forEach(([value, label]) => {
-      partGroup.appendChild(pillBtn(label, entry.participation === value, 'active-participation', () => {
-        const next = entry.participation === value ? null : value;
-        setEntry(dateISO, session.id, studentName, { participation: next });
-        render();
-      }));
+    const partButtons = PART_LEVELS.map(([value, label]) => {
+      const btn = pillBtn(label, currentParticipation === value, 'active-participation', () => {
+        currentParticipation = currentParticipation === value ? null : value;
+        setEntry(dateISO, session.id, studentName, { participation: currentParticipation });
+        partButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === currentParticipation ? ' active-participation' : ''); });
+      });
+      partGroup.appendChild(btn);
+      return { value, btn };
     });
     partTd.appendChild(partGroup);
     tr.appendChild(partTd);
@@ -306,35 +327,35 @@
     const notebookTd = document.createElement('td');
     const notebookGroup = document.createElement('div');
     notebookGroup.className = 'control-group';
-    notebookGroup.appendChild(pillBtn('لم يحضر الدفتر', entry.notebookMissing === true, 'active-absent', () => {
-      setEntry(dateISO, session.id, studentName, { notebookMissing: entry.notebookMissing === true ? null : true });
-      render();
-    }));
+    let notebookMissing = entry.notebookMissing === true;
+    const notebookBtn = pillBtn('لم يحضر الدفتر', notebookMissing, 'active-absent', () => {
+      notebookMissing = !notebookMissing;
+      setEntry(dateISO, session.id, studentName, { notebookMissing: notebookMissing ? true : null });
+      notebookBtn.className = 'pill-btn' + (notebookMissing ? ' active-absent' : '');
+    });
+    notebookGroup.appendChild(notebookBtn);
     notebookTd.appendChild(notebookGroup);
     tr.appendChild(notebookTd);
 
-    // Behavior
+    // Behavior (toggle: click the active one again to unset)
     const behaviorTd = document.createElement('td');
     const behaviorGroup = document.createElement('div');
     behaviorGroup.className = 'control-group';
-    behaviorGroup.appendChild(pillBtn('إيجابي', entry.behavior === 'positive', 'active-positive', () => {
-      setEntry(dateISO, session.id, studentName, { behavior: entry.behavior === 'positive' ? null : 'positive' });
-      render();
-    }));
-    behaviorGroup.appendChild(pillBtn('سلبي', entry.behavior === 'negative', 'active-negative', () => {
-      setEntry(dateISO, session.id, studentName, { behavior: entry.behavior === 'negative' ? null : 'negative' });
-      render();
-    }));
+    let currentBehavior = entry.behavior || null;
+    const BEHAVIOR_OPTIONS = [['positive', 'إيجابي', 'active-positive'], ['negative', 'سلبي', 'active-negative']];
+    const behaviorButtons = BEHAVIOR_OPTIONS.map(([value, label, activeClass]) => {
+      const btn = pillBtn(label, currentBehavior === value, activeClass, () => {
+        currentBehavior = currentBehavior === value ? null : value;
+        setEntry(dateISO, session.id, studentName, { behavior: currentBehavior });
+        behaviorButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === currentBehavior ? ` ${b.activeClass}` : ''); });
+      });
+      behaviorGroup.appendChild(btn);
+      return { value, activeClass, btn };
+    });
     behaviorTd.appendChild(behaviorGroup);
     tr.appendChild(behaviorTd);
 
-    // Attendance/absence statistic
-    const statsTd = document.createElement('td');
-    statsTd.className = 'attendance-stats-cell';
-    const presentN = countStatus(session.id, studentName, 'present');
-    const lateN = countStatus(session.id, studentName, 'late');
-    const absN = countStatus(session.id, studentName, 'absent');
-    statsTd.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
+    updateStats();
     tr.appendChild(statsTd);
 
     return tr;
