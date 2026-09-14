@@ -144,7 +144,30 @@
   const sessionsContainer = document.getElementById('sessionsContainer');
   const noScheduleState = document.getElementById('noScheduleState');
 
+  // Every interaction re-renders the whole day from scratch, which would
+  // otherwise reset the page (and each session table's horizontal scroll)
+  // back to the top/start. Save both before rebuilding and restore after.
   function render() {
+    const pageScrollY = window.scrollY;
+    const tableScrolls = {};
+    sessionsContainer.querySelectorAll('.attendance-table-wrap').forEach(el => {
+      tableScrolls[el.dataset.sessionId] = el.scrollLeft;
+    });
+
+    renderInner();
+
+    const restoreScroll = () => {
+      sessionsContainer.querySelectorAll('.attendance-table-wrap').forEach(el => {
+        const saved = tableScrolls[el.dataset.sessionId];
+        if (saved !== undefined) el.scrollLeft = saved;
+      });
+      window.scrollTo(0, pageScrollY);
+    };
+    restoreScroll();
+    requestAnimationFrame(restoreScroll);
+  }
+
+  function renderInner() {
     const dateISO = datePicker.value || todayISO();
     const weekday = isoToDate(dateISO).getDay();
     const dayInfo = DAYS.find(d => d.key === weekday);
@@ -204,6 +227,7 @@
 
       const scrollWrap = document.createElement('div');
       scrollWrap.className = 'schedule-wrap attendance-table-wrap';
+      scrollWrap.dataset.sessionId = session.id;
       const table = document.createElement('table');
       table.className = 'grid attendance-table';
 
