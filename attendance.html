@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>المتابعة اليومية</title>
+<link rel="stylesheet" href="assets/style.css">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5b7fdb">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/icon-16.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="جدولي">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>المتابعة اليومية</h1>
+  <div class="topbar-actions">
+    <a href="index.html" class="btn btn-ghost">جدولي</a>
+    <a href="students.html" class="btn btn-ghost">قوائم الفصول</a>
+  </div>
+</header>
+
+<main>
+  <div class="date-bar">
+    <button id="prevDayBtn" class="btn btn-ghost icon-btn-round" aria-label="اليوم السابق">◀</button>
+    <input type="date" id="datePicker">
+    <button id="nextDayBtn" class="btn btn-ghost icon-btn-round" aria-label="اليوم التالي">▶</button>
+    <button id="todayBtn" class="btn btn-ghost">اليوم</button>
+    <span id="dayLabel" class="day-label"></span>
+  </div>
+
+  <div id="sessionsContainer"></div>
+  <div id="noScheduleState" class="empty-state" hidden>ما فيه حصص مجدولة بهذا اليوم.</div>
+</main>
+
+<script src="assets/attendance.js"></script>
+</body>
+</html>

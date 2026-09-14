@@ -480,3 +480,161 @@ main {
   display: flex;
   justify-content: flex-end;
 }
+
+/* ---------- Attendance page ---------- */
+
+.date-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.icon-btn-round {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+#datePicker {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.day-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+#sessionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 820px;
+}
+
+.session-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.session-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.session-card-header .session-subject {
+  font-weight: 600;
+}
+
+.session-card-header .session-meta {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.session-card-body {
+  padding: 6px 12px;
+}
+
+.no-roster-msg {
+  padding: 14px 16px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+.no-roster-msg a {
+  color: var(--primary);
+}
+
+.student-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.student-row:last-child { border-bottom: none; }
+
+.student-row .student-row-name {
+  flex: 1;
+  min-width: 120px;
+  font-size: 0.9rem;
+}
+
+.control-group {
+  display: flex;
+  gap: 4px;
+}
+
+.pill-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.pill-btn:hover { background: var(--bg); }
+
+.pill-btn.active-present {
+  background: #e6f4ea;
+  border-color: #34a853;
+  color: #1e7e34;
+}
+.pill-btn.active-absent {
+  background: #fdecea;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.pill-btn.active-participation {
+  background: #eef1fb;
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.pill-btn.active-notebook {
+  background: #eef1fb;
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+.pill-btn.active-positive {
+  background: #e6f4ea;
+  border-color: #34a853;
+  color: #1e7e34;
+}
+.pill-btn.active-negative {
+  background: #fdecea;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.absence-badge {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: left;
+}
+
+@media (max-width: 560px) {
+  .student-row { align-items: flex-start; }
+  .student-row .student-row-name { flex-basis: 100%; }
+}
