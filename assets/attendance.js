@@ -201,9 +201,31 @@
       body.appendChild(msg);
     } else {
       ensureRecorded(dateISO, session.id, roster);
-      roster.forEach(studentName => {
-        body.appendChild(renderStudentRow(session, dateISO, studentName));
+
+      const scrollWrap = document.createElement('div');
+      scrollWrap.className = 'schedule-wrap attendance-table-wrap';
+      const table = document.createElement('table');
+      table.className = 'grid attendance-table';
+
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
+        const th = document.createElement('th');
+        th.textContent = label;
+        if (i === 0) th.className = 'period-col-header attendance-name-col';
+        headRow.appendChild(th);
       });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      roster.forEach(studentName => {
+        tbody.appendChild(renderStudentRow(session, dateISO, studentName));
+      });
+      table.appendChild(tbody);
+
+      scrollWrap.appendChild(table);
+      body.appendChild(scrollWrap);
     }
 
     card.appendChild(body);
@@ -214,15 +236,15 @@
     const entry = getEntry(dateISO, session.id, studentName);
     const status = statusOf(entry);
 
-    const row = document.createElement('div');
-    row.className = 'student-row';
+    const tr = document.createElement('tr');
 
-    const nameEl = document.createElement('span');
-    nameEl.className = 'student-row-name';
-    nameEl.textContent = studentName;
-    row.appendChild(nameEl);
+    const nameTd = document.createElement('td');
+    nameTd.className = 'period-label attendance-name-col';
+    nameTd.textContent = studentName;
+    tr.appendChild(nameTd);
 
     // Attendance
+    const attTd = document.createElement('td');
     const attGroup = document.createElement('div');
     attGroup.className = 'control-group';
     const ATT_STATUSES = [
@@ -236,9 +258,11 @@
         render();
       }));
     });
-    row.appendChild(attGroup);
+    attTd.appendChild(attGroup);
+    tr.appendChild(attTd);
 
     // Participation (right-to-left: ممتاز، متوسط، ضعيف)
+    const partTd = document.createElement('td');
     const partGroup = document.createElement('div');
     partGroup.className = 'control-group';
     const PART_LEVELS = [['excellent', 'ممتاز'], ['normal', 'متوسط'], ['none', 'ضعيف']];
@@ -249,20 +273,24 @@
         render();
       }));
     });
-    row.appendChild(partGroup);
+    partTd.appendChild(partGroup);
+    tr.appendChild(partTd);
 
     // Notebook: default assumption is that the student has it — the
     // button only marks the exception (didn't bring it), same pattern
     // as attendance defaulting to حاضر.
+    const notebookTd = document.createElement('td');
     const notebookGroup = document.createElement('div');
     notebookGroup.className = 'control-group';
     notebookGroup.appendChild(pillBtn('لم يحضر الدفتر', entry.notebookMissing === true, 'active-absent', () => {
       setEntry(dateISO, session.id, studentName, { notebookMissing: entry.notebookMissing === true ? null : true });
       render();
     }));
-    row.appendChild(notebookGroup);
+    notebookTd.appendChild(notebookGroup);
+    tr.appendChild(notebookTd);
 
     // Behavior
+    const behaviorTd = document.createElement('td');
     const behaviorGroup = document.createElement('div');
     behaviorGroup.className = 'control-group';
     behaviorGroup.appendChild(pillBtn('إيجابي', entry.behavior === 'positive', 'active-positive', () => {
@@ -273,17 +301,19 @@
       setEntry(dateISO, session.id, studentName, { behavior: entry.behavior === 'negative' ? null : 'negative' });
       render();
     }));
-    row.appendChild(behaviorGroup);
+    behaviorTd.appendChild(behaviorGroup);
+    tr.appendChild(behaviorTd);
 
-    const absBadge = document.createElement('span');
-    absBadge.className = 'absence-badge';
+    // Attendance/absence statistic
+    const statsTd = document.createElement('td');
+    statsTd.className = 'attendance-stats-cell';
     const presentN = countStatus(session.id, studentName, 'present');
     const lateN = countStatus(session.id, studentName, 'late');
     const absN = countStatus(session.id, studentName, 'absent');
-    absBadge.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
-    row.appendChild(absBadge);
+    statsTd.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
+    tr.appendChild(statsTd);
 
-    return row;
+    return tr;
   }
 
   function pillBtn(label, active, activeClass, onClick) {

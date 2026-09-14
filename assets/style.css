@@ -548,7 +548,7 @@ main {
 }
 
 .session-card-body {
-  padding: 6px 12px;
+  padding: 0;
 }
 
 .no-roster-msg {
@@ -561,25 +561,42 @@ main {
   color: var(--primary);
 }
 
-.student-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--border);
+.attendance-table-wrap {
+  margin: 0;
+  border: none;
+  border-radius: 0;
 }
-.student-row:last-child { border-bottom: none; }
 
-.student-row .student-row-name {
-  flex: 1;
-  min-width: 120px;
-  font-size: 0.9rem;
+.attendance-table {
+  min-width: 900px;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 8px;
+  border-left: 1px solid #c3c9d6;
+}
+.attendance-table th:last-child,
+.attendance-table td:last-child {
+  border-left: none;
+}
+
+.attendance-name-col {
+  width: 130px;
+  white-space: normal;
+  border-left: 2px solid var(--primary) !important;
+}
+
+.attendance-stats-cell {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .control-group {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .pill-btn {
@@ -626,18 +643,6 @@ main {
   color: var(--danger);
 }
 
-.absence-badge {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  min-width: 165px;
-  text-align: left;
-}
-
-@media (max-width: 560px) {
-  .student-row { align-items: flex-start; }
-  .student-row .student-row-name { flex-basis: 100%; }
-}
 
 /* ---------- Reports page ---------- */
 
