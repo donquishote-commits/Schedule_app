@@ -37,7 +37,7 @@
   }
 
   const ICS_DAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-  const RIYADH_UTC_OFFSET_HOURS = 3; // fixed offset, no DST
+  const SCHOOL_UTC_OFFSET_HOURS = 3; // Arabian Standard Time (Saudi/Kuwait/Qatar/Bahrain), no DST
 
   // The user's real timetable, used to seed the schedule the first time
   // the app runs on a browser with no saved data yet.
@@ -419,15 +419,15 @@
     return new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
   }
 
-  // Combines a calendar date with a "H:MM" local (Asia/Riyadh) time and
-  // returns the equivalent UTC instant.
+  // Combines a calendar date with a "H:MM" local school time and returns
+  // the equivalent UTC instant.
   function icsDateTime(anchorDate, timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
     return new Date(Date.UTC(
       anchorDate.getFullYear(),
       anchorDate.getMonth(),
       anchorDate.getDate(),
-      h - RIYADH_UTC_OFFSET_HOURS,
+      h - SCHOOL_UTC_OFFSET_HOURS,
       m
     ));
   }
