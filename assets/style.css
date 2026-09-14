@@ -568,6 +568,7 @@ main {
 }
 
 .attendance-table {
+  table-layout: auto;
   min-width: 900px;
 }
 
@@ -575,6 +576,7 @@ main {
 .attendance-table td {
   padding: 8px;
   border-left: 1px solid #c3c9d6;
+  white-space: nowrap;
 }
 .attendance-table th:last-child,
 .attendance-table td:last-child {
@@ -596,7 +598,7 @@ main {
 .control-group {
   display: flex;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .pill-btn {
@@ -608,6 +610,8 @@ main {
   font-size: 0.76rem;
   cursor: pointer;
   font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .pill-btn:hover { background: var(--bg); }
