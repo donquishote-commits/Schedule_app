@@ -694,3 +694,18 @@ main {
 .report-table td {
   padding: 6px 8px;
 }
+
+/* Clearer dividers between columns than the grid's default hairline,
+   and a colored accent on the sticky name column so it reads as the
+   anchor while the tracked columns scroll past it. */
+.report-table th,
+.report-table td {
+  border-left: 1px solid #c3c9d6;
+}
+.report-table th:last-child,
+.report-table td:last-child {
+  border-left: none;
+}
+.report-name-col {
+  border-left: 2px solid var(--primary) !important;
+}
