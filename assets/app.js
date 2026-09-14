@@ -12,19 +12,32 @@
   ];
 
   // Fixed daily timetable: class periods and recesses, in order.
+  // start/end are stored in 24-hour time so they can be used for real
+  // date arithmetic (e.g. the calendar export); display uses to12().
   const PERIODS = [
-    { type: 'class', key: 1, label: 'الحصة الأولى', start: '7:55', end: '8:40' },
-    { type: 'class', key: 2, label: 'الحصة الثانية', start: '8:45', end: '9:30' },
-    { type: 'class', key: 3, label: 'الحصة الثالثة', start: '9:35', end: '10:20' },
+    { type: 'class', key: 1, label: 'الحصة الأولى', start: '07:55', end: '08:40' },
+    { type: 'class', key: 2, label: 'الحصة الثانية', start: '08:45', end: '09:30' },
+    { type: 'class', key: 3, label: 'الحصة الثالثة', start: '09:35', end: '10:20' },
     { type: 'break', key: 'b1', label: 'الفرصة الأولى', start: '10:20', end: '10:35' },
     { type: 'class', key: 4, label: 'الحصة الرابعة', start: '10:35', end: '11:20' },
     { type: 'class', key: 5, label: 'الحصة الخامسة', start: '11:25', end: '12:10' },
     { type: 'break', key: 'b2', label: 'الفرصة الثانية', start: '12:10', end: '12:20' },
-    { type: 'class', key: 6, label: 'الحصة السادسة', start: '12:20', end: '1:05' },
-    { type: 'class', key: 7, label: 'الحصة السابعة', start: '1:10', end: '1:55' },
+    { type: 'class', key: 6, label: 'الحصة السادسة', start: '12:20', end: '13:05' },
+    { type: 'class', key: 7, label: 'الحصة السابعة', start: '13:10', end: '13:55' },
   ];
 
   const CLASS_PERIODS = PERIODS.filter(p => p.type === 'class');
+
+  // Converts a 24-hour "HH:MM" period time to the informal 12-hour form
+  // the school actually uses (no AM/PM marker, e.g. "13:05" -> "1:05").
+  function to12(t) {
+    const [h, m] = t.split(':').map(Number);
+    const h12 = h > 12 ? h - 12 : h;
+    return `${h12}:${String(m).padStart(2, '0')}`;
+  }
+
+  const ICS_DAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const RIYADH_UTC_OFFSET_HOURS = 3; // fixed offset, no DST
 
   // The user's real timetable, used to seed the schedule the first time
   // the app runs on a browser with no saved data yet.
@@ -103,7 +116,7 @@
         tr.className = 'break-row';
         const td = document.createElement('td');
         td.colSpan = DAYS.length + 1;
-        td.textContent = `${period.label} (${formatRange(period.start, period.end)})`;
+        td.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
@@ -116,7 +129,7 @@
       nameSpan.textContent = period.label;
       const timeSpan = document.createElement('span');
       timeSpan.className = 'period-time';
-      timeSpan.textContent = formatRange(period.start, period.end);
+      timeSpan.textContent = formatRange(to12(period.start), to12(period.end));
       labelTd.appendChild(nameSpan);
       labelTd.appendChild(timeSpan);
       tr.appendChild(labelTd);
@@ -193,7 +206,7 @@
   CLASS_PERIODS.forEach(period => {
     const opt = document.createElement('option');
     opt.value = period.key;
-    opt.textContent = `${period.label} (${formatRange(period.start, period.end)})`;
+    opt.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
     periodSelect.appendChild(opt);
   });
 
@@ -378,6 +391,91 @@
       }
     };
     reader.readAsText(file);
+  });
+
+  // ---------- Export to Google Calendar (.ics) ----------
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function escapeICS(text) {
+    return String(text)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
+  }
+
+  function formatICSDate(date) {
+    return `${date.getUTCFullYear()}${pad2(date.getUTCMonth() + 1)}${pad2(date.getUTCDate())}` +
+      `T${pad2(date.getUTCHours())}${pad2(date.getUTCMinutes())}${pad2(date.getUTCSeconds())}Z`;
+  }
+
+  // Next calendar date (today or later) that falls on the given weekday
+  // (0 = Sunday, matching Date#getDay and our DAYS keys).
+  function nextDateForWeekday(targetDay) {
+    const today = new Date();
+    const diff = (targetDay - today.getDay() + 7) % 7;
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff);
+  }
+
+  // Combines a calendar date with a "H:MM" local (Asia/Riyadh) time and
+  // returns the equivalent UTC instant.
+  function icsDateTime(anchorDate, timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return new Date(Date.UTC(
+      anchorDate.getFullYear(),
+      anchorDate.getMonth(),
+      anchorDate.getDate(),
+      h - RIYADH_UTC_OFFSET_HOURS,
+      m
+    ));
+  }
+
+  function buildICS() {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Schedule App//AR', 'CALSCALE:GREGORIAN'];
+    const stamp = formatICSDate(new Date());
+
+    classes.forEach(c => {
+      const period = CLASS_PERIODS.find(p => p.key === c.periodKey);
+      if (!period) return;
+
+      const anchor = nextDateForWeekday(c.day);
+      const start = icsDateTime(anchor, period.start);
+      const end = icsDateTime(anchor, period.end);
+      const notes = (c.notes || []).map(n => `${n.done ? '✓' : '-'} ${n.text}`).join('\n');
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${c.id}@schedule-app`);
+      lines.push(`DTSTAMP:${stamp}`);
+      lines.push(`DTSTART:${formatICSDate(start)}`);
+      lines.push(`DTEND:${formatICSDate(end)}`);
+      lines.push(`RRULE:FREQ=WEEKLY;BYDAY=${ICS_DAY_CODES[c.day]}`);
+      lines.push(`SUMMARY:${escapeICS(c.subject)}`);
+      if (c.room) lines.push(`LOCATION:${escapeICS(c.room)}`);
+      if (notes) lines.push(`DESCRIPTION:${escapeICS(notes)}`);
+      lines.push('END:VEVENT');
+    });
+
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
+  document.getElementById('exportCalendarBtn').addEventListener('click', () => {
+    if (classes.length === 0) {
+      alert('ما فيه حصص مضافة بعد.');
+      return;
+    }
+    const blob = new Blob([buildICS()], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'جدولي.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    alert('نزل ملف التقويم. افتح Google Calendar من الكمبيوتر ← إعدادات (أيقونة الترس) ← استيراد وتصدير ← استيراد، واختر هذا الملف.\n\nملاحظة: هذا تصدير لمرة واحدة — أي تعديل لاحق بالجدول يحتاج تصدير واستيراد من جديد.');
   });
 
   // ---------- Init ----------
