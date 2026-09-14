@@ -26,6 +26,17 @@
 
   const CLASS_PERIODS = PERIODS.filter(p => p.type === 'class');
 
+  // The user's real timetable, used to seed the schedule the first time
+  // the app runs on a browser with no saved data yet.
+  const DEFAULT_CLASSES = [
+    { id: 'seed-1', day: 0, periodKey: 1, subject: 'الفلسفة', room: '12د1', color: '#5b7fdb', notes: [] },
+    { id: 'seed-2', day: 2, periodKey: 6, subject: 'الفلسفة', room: '12د1', color: '#5b7fdb', notes: [] },
+    { id: 'seed-3', day: 2, periodKey: 7, subject: 'الدستور', room: '12ع4', color: '#2f9e77', notes: [] },
+    { id: 'seed-4', day: 3, periodKey: 3, subject: 'اجتماع القسم الأسبوعي', room: '', color: '#8b6fc9', notes: [] },
+    { id: 'seed-5', day: 4, periodKey: 2, subject: 'الدستور', room: '12ع6', color: '#2f9e77', notes: [] },
+    { id: 'seed-6', day: 4, periodKey: 7, subject: 'الدستور', room: '12ع5', color: '#2f9e77', notes: [] },
+  ];
+
   // Isolate the LTR time range so the RTL bidi algorithm doesn't reorder
   // "start - end" into "end - start".
   function formatRange(start, end) {
@@ -40,7 +51,8 @@
   function loadClasses() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      if (raw) return JSON.parse(raw);
+      return DEFAULT_CLASSES.map(c => ({ ...c, notes: [...c.notes] }));
     } catch (e) {
       console.error('Failed to load schedule from storage', e);
       return [];
@@ -369,5 +381,6 @@
   });
 
   // ---------- Init ----------
+  saveClasses(); // persist seed data on first run so it's there on next load too
   renderGrid();
 })();
