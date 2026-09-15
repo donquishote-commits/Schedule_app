@@ -75,12 +75,15 @@
     return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
   }
 
-  // The known subjects get evenly-spaced hues (deliberately distinct from
-  // each other); any other subject (an older free-text entry, e.g. "اجتماع
-  // القسم الأسبوعي") falls back to a hash-derived hue so it's still
-  // consistent, just not guaranteed distinct from the fixed palette.
+  // Hand-picked hues (not an even 72° split) — an even split puts the last
+  // and first colors right next to each other on the wheel, which made
+  // "الصحة النفسية" and "الفلسفة" look too similar in practice. Any other
+  // subject (an older free-text entry, e.g. "اجتماع القسم الأسبوعي") falls
+  // back to a hash-derived hue so it's still consistent, just not
+  // guaranteed distinct from this fixed palette.
+  const SUBJECT_HUES = [15, 95, 155, 215, 265];
   const SUBJECT_COLORS = Object.fromEntries(
-    SUBJECTS.map((s, i) => [s, hslToHex(i * (360 / SUBJECTS.length), 42, 82)])
+    SUBJECTS.map((s, i) => [s, hslToHex(SUBJECT_HUES[i], 42, 82)])
   );
 
   function colorForSubject(subject) {
@@ -136,7 +139,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
-      return DEFAULT_CLASSES.map(c => ({ ...c, color: colorForSubject(c.subject), notes: [...c.notes] }));
+      return DEFAULT_CLASSES.map(c => ({ ...c, notes: [...c.notes] }));
     } catch (e) {
       console.error('Failed to load schedule from storage', e);
       return [];
@@ -254,7 +257,10 @@
   function renderClassBlock(c) {
     const block = document.createElement('div');
     block.className = 'class-block';
-    block.style.background = c.color || colorForSubject(c.subject);
+    // Always computed live from the subject, never read from storage —
+    // so retuning the palette or fixing an old entry's subject instantly
+    // shows the right color everywhere, with nothing to go stale.
+    block.style.background = colorForSubject(c.subject);
 
     const subject = document.createElement('span');
     subject.className = 'subject';
@@ -439,7 +445,6 @@
     const room = roomSelect.value.trim();
     const day = Number(daySelect.value);
     const periodKey = isNaN(Number(periodSelect.value)) ? periodSelect.value : Number(periodSelect.value);
-    const color = colorForSubject(subject);
 
     const conflict = findClass(day, periodKey);
     if (conflict && conflict.id !== editingId) {
@@ -449,11 +454,11 @@
 
     if (editingId) {
       const c = classes.find(x => x.id === editingId);
-      Object.assign(c, { subject, room, day, periodKey, color });
+      Object.assign(c, { subject, room, day, periodKey });
     } else {
       classes.push({
         id: uid(),
-        subject, room, day, periodKey, color,
+        subject, room, day, periodKey,
         notes: [],
       });
     }
