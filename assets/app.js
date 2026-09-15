@@ -487,7 +487,7 @@
   subjectSelect.addEventListener('change', () => {
     const validRooms = roomsForSubject(subjectSelect.value);
     const roomToKeep = validRooms.includes(roomSelect.value) ? roomSelect.value : '';
-    roomSelect.populate(validRooms, roomToKeep, '— بدون —', false, true);
+    roomSelect.populate(validRooms, roomToKeep, '— غير معيّن —', false, true);
   });
 
   function openModal() {
@@ -509,7 +509,7 @@
     classForm.reset();
     document.getElementById('classId').value = '';
     subjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
-    roomSelect.populate(roomsForSubject(''), '', '— بدون —', false, true);
+    roomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
     daySelect.value = dayKey;
     periodSelect.value = periodKey;
     openModal();
@@ -539,7 +539,7 @@
 
     document.getElementById('classId').value = c.id;
     subjectSelect.populate(SUBJECTS, c.subject, 'اختر المادة', true);
-    roomSelect.populate(roomsForSubject(c.subject), c.room || '', '— بدون —', false, true);
+    roomSelect.populate(roomsForSubject(c.subject), c.room || '', '— غير معيّن —', false, true);
     daySelect.value = c.day;
     periodSelect.value = c.periodKey;
 
