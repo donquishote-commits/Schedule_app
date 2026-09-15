@@ -237,6 +237,72 @@
     XLSX.writeFile(wb, `كل-الفصول-${date}.xlsx`);
   }
 
+  // ---------- Start a new term (clear grades only) ----------
+  // The schedule, rosters, attendance history, and notebook/behavior/notes
+  // are untouched — only test scores and coursework get wiped, since
+  // those are the only thing that's specific to one term's exams.
+  const FULL_BACKUP_KEYS = {
+    schedule: SCHEDULE_KEY,
+    students: STUDENTS_KEY,
+    attendance: ATTENDANCE_KEY,
+    reports: REPORTS_KEY,
+  };
+
+  function downloadFullBackup(filenamePrefix) {
+    const bundle = { exportedAt: new Date().toISOString(), version: 1, data: {} };
+    Object.entries(FULL_BACKUP_KEYS).forEach(([name, key]) => {
+      const raw = localStorage.getItem(key);
+      bundle.data[name] = raw ? JSON.parse(raw) : null;
+    });
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `${filenamePrefix}-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function startNewTerm() {
+    let scoredCount = 0;
+    Object.values(reports).forEach(classReports => {
+      Object.values(classReports).forEach(entry => {
+        if ((entry.testScore !== undefined && entry.testScore !== null) ||
+            (entry.courseworkScore !== undefined && entry.courseworkScore !== null)) {
+          scoredCount++;
+        }
+      });
+    });
+
+    if (scoredCount === 0) {
+      alert('ما فيه درجات مسجّلة أصلًا لمسحها.');
+      return;
+    }
+
+    if (!confirm(
+      `بدء فصل دراسي جديد بيمسح درجة الاختبار والأعمال لـ ${scoredCount} طالب عبر كل الفصول.\n\n` +
+      'الجدول، قوائم الطلاب، الحضور، والدفتر/السلوك/الملاحظات تبقى كما هي بدون أي تغيير.\n\n' +
+      'بينزّل لك نسخة احتياطية شاملة أول قبل المسح. متابعة؟'
+    )) return;
+
+    downloadFullBackup('نسخة-قبل-الأرشفة');
+
+    Object.keys(reports).forEach(className => {
+      Object.keys(reports[className]).forEach(studentName => {
+        const entry = reports[className][studentName];
+        delete entry.testScore;
+        delete entry.courseworkScore;
+      });
+    });
+    saveReports();
+
+    alert('تم مسح الدرجات لكل الطلاب. باقي البيانات محفوظة كما هي.');
+    render();
+  }
+
   const printArea = document.getElementById('printArea');
 
   function exportClassPDF(className) {
@@ -513,6 +579,7 @@
   renderOverview();
 
   document.getElementById('exportAllExcelBtn').addEventListener('click', exportAllClassesExcel);
+  document.getElementById('newTermBtn').addEventListener('click', startNewTerm);
 
   // Clears only the cached app files (service worker + Cache Storage) so a
   // fresh version can take over — never touches localStorage, so the
