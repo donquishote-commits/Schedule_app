@@ -541,6 +541,9 @@ main {
   gap: 10px;
   margin-bottom: 16px;
 }
+.day-summary[hidden] {
+  display: none;
+}
 
 .day-summary-stat {
   display: flex;
@@ -587,6 +590,23 @@ main {
   font-weight: 600;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.attendance-save-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.attendance-save-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.attendance-save-status.unsaved {
+  color: var(--danger);
+  font-weight: 600;
 }
 
 #sessionsContainer {

@@ -4,6 +4,7 @@
   const SCHEDULE_KEY = 'schedule_app_classes_ar_v1';
   const STUDENTS_KEY = 'schedule_app_students_v1';
   const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
+  const HOLIDAYS_KEY = 'schedule_app_holidays_v1';
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -54,9 +55,18 @@
   let scheduleClasses = loadJSON(SCHEDULE_KEY, []);
   let students = loadJSON(STUDENTS_KEY, {});
   let attendance = loadJSON(ATTENDANCE_KEY, {});
+  let holidays = new Set(loadJSON(HOLIDAYS_KEY, []));
 
   function saveAttendance() {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance));
+  }
+
+  function saveHolidays() {
+    localStorage.setItem(HOLIDAYS_KEY, JSON.stringify([...holidays]));
+  }
+
+  function isHoliday(dateISO) {
+    return holidays.has(dateISO);
   }
 
   // ---------- Date helpers ----------
@@ -85,18 +95,6 @@
     return `${dateISO}::${classId}`;
   }
 
-  function getEntry(dateISO, classId, studentName) {
-    const sk = sessionKey(dateISO, classId);
-    return (attendance[sk] && attendance[sk][studentName]) || {};
-  }
-
-  function setEntry(dateISO, classId, studentName, patch) {
-    const sk = sessionKey(dateISO, classId);
-    attendance[sk] = attendance[sk] || {};
-    attendance[sk][studentName] = Object.assign({}, attendance[sk][studentName], patch);
-    saveAttendance();
-  }
-
   // Reads an entry's attendance status, translating the old boolean
   // `present` field (from before "متأخر" existed) into the new
   // 'present' | 'absent' | 'late' scheme so earlier data isn't lost.
@@ -108,23 +106,71 @@
     return undefined;
   }
 
-  // Makes sure every roster student for this session has an explicit
-  // attendance status, defaulting new ones to "حاضر". Only for
-  // today-or-earlier: attendance can't be taken for a day that hasn't
-  // happened, so future dates are left unrecorded until they arrive.
-  function ensureRecorded(dateISO, classId, rosterNames) {
-    if (dateISO > todayISO()) return;
+  // ---------- Draft attendance (not written to storage until "حفظ الغياب") ----------
+  // Nothing is committed to the `attendance` store the moment a session
+  // card renders or a button is clicked anymore — only an explicit press
+  // of that session's save button writes anything, so a stray tap while
+  // scrolling can never silently record the wrong status. Each session's
+  // in-progress edits live here instead, seeded from whatever was already
+  // committed (so reopening a saved session still shows its real status),
+  // keyed by dateISO+sessionId so different dates never mix drafts.
+  const draftBySession = new Map();
+  // Session keys (same "dateISO::sessionId" shape) with edits pending save
+  // — used to warn before a date change or page close would discard them.
+  const dirtySessions = new Set();
+
+  function draftMapKey(dateISO, classId) {
+    return sessionKey(dateISO, classId);
+  }
+
+  function getOrCreateDraft(dateISO, classId, rosterNames) {
+    const key = draftMapKey(dateISO, classId);
+    if (!draftBySession.has(key)) {
+      const committed = attendance[sessionKey(dateISO, classId)] || {};
+      const draft = {};
+      rosterNames.forEach(name => {
+        const entry = committed[name] || {};
+        draft[name] = {
+          status: statusOf(entry) || 'present',
+          participation: entry.participation || null,
+          notebookMissing: entry.notebookMissing === true,
+          behavior: entry.behavior || null,
+        };
+      });
+      draftBySession.set(key, draft);
+    }
+    return draftBySession.get(key);
+  }
+
+  // A session counts as already saved for this date only once every
+  // roster student has a committed entry — matches what the old
+  // ensureRecorded() considered "recorded".
+  function isSessionSaved(dateISO, classId, rosterNames) {
+    const committed = attendance[sessionKey(dateISO, classId)];
+    if (!committed) return false;
+    return rosterNames.every(name => statusOf(committed[name]) !== undefined);
+  }
+
+  // Writes the whole in-progress draft for this session into the real,
+  // persisted store in one shot — a student never touched by the teacher
+  // still defaults to "حاضر", same convenience as before, just deferred
+  // until this explicit save instead of happening the instant the card
+  // rendered.
+  function saveSessionDraft(dateISO, classId, rosterNames) {
+    const draft = getOrCreateDraft(dateISO, classId, rosterNames);
     const sk = sessionKey(dateISO, classId);
     attendance[sk] = attendance[sk] || {};
-    let changed = false;
     rosterNames.forEach(name => {
-      const entry = attendance[sk][name];
-      if (!statusOf(entry)) {
-        attendance[sk][name] = Object.assign({}, entry, { status: 'present' });
-        changed = true;
-      }
+      const d = draft[name];
+      attendance[sk][name] = {
+        status: d.status || 'present',
+        participation: d.participation || null,
+        notebookMissing: d.notebookMissing ? true : null,
+        behavior: d.behavior || null,
+      };
     });
-    if (changed) saveAttendance();
+    saveAttendance();
+    dirtySessions.delete(draftMapKey(dateISO, classId));
   }
 
   function countStatus(classId, studentName, status) {
@@ -144,6 +190,13 @@
   const sessionsContainer = document.getElementById('sessionsContainer');
   const noScheduleState = document.getElementById('noScheduleState');
   const daySummaryEl = document.getElementById('daySummary');
+  const holidayStateEl = document.getElementById('holidayState');
+  const holidayToggleBtn = document.getElementById('holidayToggleBtn');
+
+  function updateHolidayToggleLabel(dateISO) {
+    if (!holidayToggleBtn) return;
+    holidayToggleBtn.textContent = isHoliday(dateISO) ? '🗓 إلغاء علامة العطلة الرسمية' : '🗓 وضع علامة عطلة رسمية';
+  }
 
   // Attendance percentages for the selected day, across every session
   // scheduled that day — separate from renderInner's full rebuild so a
@@ -174,6 +227,7 @@
     const s = computeDaySummary(dateISO);
     if (s.total === 0) {
       daySummaryEl.hidden = true;
+      daySummaryEl.innerHTML = '';
       return;
     }
     daySummaryEl.hidden = false;
@@ -227,11 +281,28 @@
     requestAnimationFrame(restoreScroll);
   }
 
+  // The date currently on screen — kept in sync at the end of every
+  // successful render so a cancelled date-navigation (unsaved changes,
+  // teacher backs out of the warning) can restore the picker to it.
+  let currentRenderedDate = todayISO();
+
   function renderInner() {
     const dateISO = datePicker.value || todayISO();
     const weekday = isoToDate(dateISO).getDay();
     const dayInfo = DAYS.find(d => d.key === weekday);
     dayLabel.textContent = dayInfo ? dayInfo.label : '';
+    updateHolidayToggleLabel(dateISO);
+
+    if (isHoliday(dateISO)) {
+      daySummaryEl.hidden = true;
+      sessionsContainer.innerHTML = '';
+      noScheduleState.hidden = true;
+      holidayStateEl.hidden = false;
+      holidayStateEl.textContent = 'هذا اليوم عطلة رسمية — لا تُسجَّل فيه بيانات حضور. اضغط على زر "إلغاء علامة العطلة الرسمية" أعلاه إذا وُضعت العلامة بالخطأ.';
+      currentRenderedDate = dateISO;
+      return;
+    }
+    holidayStateEl.hidden = true;
 
     renderDaySummary(dateISO);
     sessionsContainer.innerHTML = '';
@@ -239,6 +310,7 @@
     if (!dayInfo) {
       noScheduleState.hidden = false;
       noScheduleState.textContent = 'لا توجد حصص في عطلة نهاية الأسبوع.';
+      currentRenderedDate = dateISO;
       return;
     }
 
@@ -249,6 +321,7 @@
     noScheduleState.hidden = sessions.length > 0;
     if (sessions.length === 0) {
       noScheduleState.textContent = 'لا توجد حصص مجدولة في هذا اليوم.';
+      currentRenderedDate = dateISO;
       return;
     }
 
@@ -256,10 +329,7 @@
       sessionsContainer.appendChild(renderSessionCard(session, dateISO));
     });
 
-    // Re-run after the session cards render: each one just called
-    // ensureRecorded, which may have written default "حاضر" entries that
-    // didn't exist yet when the summary was first computed above.
-    renderDaySummary(dateISO);
+    currentRenderedDate = dateISO;
   }
 
   function renderSessionCard(session, dateISO) {
@@ -269,6 +339,7 @@
 
     const className = (session.room || '').trim();
     const roster = students[className];
+    const draft = roster && roster.length > 0 ? getOrCreateDraft(dateISO, session.id, roster) : null;
 
     const header = document.createElement('div');
     header.className = 'session-card-header';
@@ -295,7 +366,7 @@
       copyBtn.textContent = 'نسخ أسماء الغياب';
       copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        copyAbsentees(session, dateISO, roster, copyBtn);
+        copyAbsentees(roster, draft, copyBtn);
       });
       header.appendChild(copyBtn);
 
@@ -305,7 +376,7 @@
       toolsBtn.textContent = '🎲 أدوات الحصة';
       toolsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openToolsModal(session, dateISO, roster);
+        openToolsModal(session, roster, draft);
       });
       header.appendChild(toolsBtn);
     }
@@ -322,8 +393,6 @@
         : `لا يوجد اسم فصل محدد لهذه الحصة (حقل الغرفة فارغ). عدّلها من <a href="index.html">صفحة الجدول</a> لربطها بقائمة الطلاب.`;
       body.appendChild(msg);
     } else {
-      ensureRecorded(dateISO, session.id, roster);
-
       const scrollWrap = document.createElement('div');
       scrollWrap.className = 'schedule-wrap attendance-table-wrap';
       scrollWrap.dataset.sessionId = session.id;
@@ -343,12 +412,57 @@
 
       const tbody = document.createElement('tbody');
       roster.forEach(studentName => {
-        tbody.appendChild(renderStudentRow(session, dateISO, studentName));
+        tbody.appendChild(renderStudentRow(session.id, studentName, draft, () => setSessionDirty(true)));
       });
       table.appendChild(tbody);
 
       scrollWrap.appendChild(table);
       body.appendChild(scrollWrap);
+
+      // Nothing above is written to storage until this is pressed — every
+      // click just edited the in-memory draft, so a stray tap while
+      // scrolling never silently records the wrong status.
+      const saveRow = document.createElement('div');
+      saveRow.className = 'attendance-save-row';
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'btn btn-primary';
+      const saveStatus = document.createElement('span');
+      saveStatus.className = 'attendance-save-status';
+
+      let dirty = !isSessionSaved(dateISO, session.id, roster);
+      function setSessionDirty(value) {
+        dirty = value;
+        updateSaveUI();
+      }
+      function updateSaveUI() {
+        const dmKey = draftMapKey(dateISO, session.id);
+        if (dirty) {
+          saveBtn.textContent = '💾 حفظ الغياب';
+          saveBtn.disabled = false;
+          saveStatus.textContent = 'لم يُحفظ بعد';
+          saveStatus.className = 'attendance-save-status unsaved';
+          dirtySessions.add(dmKey);
+        } else {
+          saveBtn.textContent = '✓ تم الحفظ';
+          saveBtn.disabled = true;
+          saveStatus.textContent = '';
+          saveStatus.className = 'attendance-save-status';
+          dirtySessions.delete(dmKey);
+        }
+      }
+      updateSaveUI();
+
+      saveBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        saveSessionDraft(dateISO, session.id, roster);
+        setSessionDirty(false);
+        renderDaySummary(dateISO);
+      });
+
+      saveRow.appendChild(saveBtn);
+      saveRow.appendChild(saveStatus);
+      body.appendChild(saveRow);
     }
 
     card.appendChild(body);
@@ -361,8 +475,8 @@
   // reset. (An earlier version called the full render() on every click,
   // which rebuilt the whole table and reset horizontal scroll on some
   // devices even with scroll-position save/restore.)
-  function renderStudentRow(session, dateISO, studentName) {
-    const entry = getEntry(dateISO, session.id, studentName);
+  function renderStudentRow(classId, studentName, draft, onChange) {
+    const entry = draft[studentName];
 
     const tr = document.createElement('tr');
 
@@ -374,9 +488,9 @@
     const statsTd = document.createElement('td');
     statsTd.className = 'attendance-stats-cell';
     function updateStats() {
-      const presentN = countStatus(session.id, studentName, 'present');
-      const lateN = countStatus(session.id, studentName, 'late');
-      const absN = countStatus(session.id, studentName, 'absent');
+      const presentN = countStatus(classId, studentName, 'present');
+      const lateN = countStatus(classId, studentName, 'late');
+      const absN = countStatus(classId, studentName, 'absent');
       statsTd.textContent = `حضور: ${presentN} · تأخر: ${lateN} · غياب: ${absN}`;
     }
 
@@ -390,11 +504,10 @@
       ['absent', 'غائب', 'active-absent'],
     ];
     const attButtons = ATT_STATUSES.map(([value, label, activeClass]) => {
-      const btn = pillBtn(label, statusOf(entry) === value, activeClass, () => {
-        setEntry(dateISO, session.id, studentName, { status: value, present: undefined });
+      const btn = pillBtn(label, entry.status === value, activeClass, () => {
+        entry.status = value;
         attButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === value ? ` ${b.activeClass}` : ''); });
-        updateStats();
-        renderDaySummary(dateISO);
+        onChange();
       });
       attGroup.appendChild(btn);
       return { value, activeClass, btn };
@@ -407,13 +520,12 @@
     const partTd = document.createElement('td');
     const partGroup = document.createElement('div');
     partGroup.className = 'control-group';
-    let currentParticipation = entry.participation || null;
     const PART_LEVELS = [['excellent', 'ممتاز'], ['normal', 'متوسط'], ['none', 'ضعيف']];
     const partButtons = PART_LEVELS.map(([value, label]) => {
-      const btn = pillBtn(label, currentParticipation === value, 'active-participation', () => {
-        currentParticipation = currentParticipation === value ? null : value;
-        setEntry(dateISO, session.id, studentName, { participation: currentParticipation });
-        partButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === currentParticipation ? ' active-participation' : ''); });
+      const btn = pillBtn(label, entry.participation === value, 'active-participation', () => {
+        entry.participation = entry.participation === value ? null : value;
+        partButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === entry.participation ? ' active-participation' : ''); });
+        onChange();
       });
       partGroup.appendChild(btn);
       return { value, btn };
@@ -427,11 +539,10 @@
     const notebookTd = document.createElement('td');
     const notebookGroup = document.createElement('div');
     notebookGroup.className = 'control-group';
-    let notebookMissing = entry.notebookMissing === true;
-    const notebookBtn = pillBtn('لم يحضر الدفتر', notebookMissing, 'active-absent', () => {
-      notebookMissing = !notebookMissing;
-      setEntry(dateISO, session.id, studentName, { notebookMissing: notebookMissing ? true : null });
-      notebookBtn.className = 'pill-btn' + (notebookMissing ? ' active-absent' : '');
+    const notebookBtn = pillBtn('لم يحضر الدفتر', entry.notebookMissing === true, 'active-absent', () => {
+      entry.notebookMissing = !entry.notebookMissing;
+      notebookBtn.className = 'pill-btn' + (entry.notebookMissing ? ' active-absent' : '');
+      onChange();
     });
     notebookGroup.appendChild(notebookBtn);
     notebookTd.appendChild(notebookGroup);
@@ -441,13 +552,12 @@
     const behaviorTd = document.createElement('td');
     const behaviorGroup = document.createElement('div');
     behaviorGroup.className = 'control-group';
-    let currentBehavior = entry.behavior || null;
     const BEHAVIOR_OPTIONS = [['positive', 'إيجابي', 'active-positive'], ['negative', 'سلبي', 'active-negative']];
     const behaviorButtons = BEHAVIOR_OPTIONS.map(([value, label, activeClass]) => {
-      const btn = pillBtn(label, currentBehavior === value, activeClass, () => {
-        currentBehavior = currentBehavior === value ? null : value;
-        setEntry(dateISO, session.id, studentName, { behavior: currentBehavior });
-        behaviorButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === currentBehavior ? ` ${b.activeClass}` : ''); });
+      const btn = pillBtn(label, entry.behavior === value, activeClass, () => {
+        entry.behavior = entry.behavior === value ? null : value;
+        behaviorButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === entry.behavior ? ` ${b.activeClass}` : ''); });
+        onChange();
       });
       behaviorGroup.appendChild(btn);
       return { value, activeClass, btn };
@@ -462,9 +572,11 @@
   }
 
   // Copies the absent students' names (one per line) to the clipboard so
-  // they can be pasted straight into the school's own absence form.
-  async function copyAbsentees(session, dateISO, roster, btn) {
-    const absentees = roster.filter(name => statusOf(getEntry(dateISO, session.id, name)) === 'absent');
+  // they can be pasted straight into the school's own absence form. Reads
+  // the in-progress draft, not the committed store, so it reflects what's
+  // on screen right now even before "حفظ الغياب" is pressed.
+  async function copyAbsentees(roster, draft, btn) {
+    const absentees = roster.filter(name => draft[name].status === 'absent');
 
     if (absentees.length === 0) {
       alert('لا يوجد طلاب غائبون في هذه الحصة اليوم.');
@@ -682,10 +794,12 @@
   closeToolsModalBtn.addEventListener('click', closeToolsModal);
   toolsModal.addEventListener('click', (e) => { if (e.target === toolsModal) closeToolsModal(); });
 
-  function openToolsModal(session, dateISO, roster) {
+  function openToolsModal(session, roster, draft) {
     // Only students marked حاضر/متأخر today take part — absentees can't
     // be picked or grouped into an activity they're not in class for.
-    const present = roster.filter(name => statusOf(getEntry(dateISO, session.id, name)) !== 'absent');
+    // Reads the in-progress draft so it reflects what's on screen right
+    // now, even before "حفظ الغياب" is pressed.
+    const present = roster.filter(name => draft[name].status !== 'absent');
 
     toolsModalTitle.textContent = `أدوات الحصة — ${session.subject}`;
     toolsModalBody.innerHTML = '';
@@ -813,21 +927,80 @@
     toolsModal.hidden = false;
   }
 
+  // ---------- Holiday marking ----------
+  if (holidayToggleBtn) {
+    holidayToggleBtn.addEventListener('click', () => {
+      const dateISO = datePicker.value || todayISO();
+      if (isHoliday(dateISO)) {
+        holidays.delete(dateISO);
+        saveHolidays();
+        render();
+        return;
+      }
+
+      const prefix = `${dateISO}::`;
+      const hasData = Object.keys(attendance).some(k => k.startsWith(prefix));
+      const msg = hasData
+        ? 'سيتم وضع علامة على هذا اليوم كعطلة رسمية، وسيُحذف كل ما سُجّل فيه من بيانات حضور (على الأرجح سُجّل خطأً لأن المدرسة لم تكن بها دوام). هل تريد المتابعة؟'
+        : 'سيتم وضع علامة على هذا اليوم كعطلة رسمية، ولن تظهر فيه حصص لتسجيل الحضور. هل تريد المتابعة؟';
+      if (!confirm(msg)) return;
+
+      if (hasData) {
+        Object.keys(attendance).filter(k => k.startsWith(prefix)).forEach(k => delete attendance[k]);
+        saveAttendance();
+      }
+      holidays.add(dateISO);
+      saveHolidays();
+      draftBySession.clear();
+      dirtySessions.clear();
+      render();
+    });
+  }
+
   // ---------- Date controls ----------
+  // Switching dates fully rebuilds sessionsContainer, which would silently
+  // throw away any session's in-progress (unsaved) draft — so every
+  // navigation path is guarded: warn first, and if the teacher backs out,
+  // undo whatever already changed (the date picker's own value included).
+  function navigateIfConfirmed(action) {
+    if (dirtySessions.size > 0) {
+      const proceed = confirm('لديك تعديلات على الغياب لم تُحفظ بعد. إذا تابعت الآن بدون الضغط على "حفظ الغياب"، ستُفقد هذه التعديلات. هل تريد المتابعة؟');
+      if (!proceed) {
+        datePicker.value = currentRenderedDate;
+        return;
+      }
+    }
+    draftBySession.clear();
+    dirtySessions.clear();
+    action();
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    if (dirtySessions.size === 0) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
   datePicker.value = todayISO();
-  datePicker.addEventListener('change', render);
+  datePicker.addEventListener('change', () => navigateIfConfirmed(render));
 
   document.getElementById('todayBtn').addEventListener('click', () => {
-    datePicker.value = todayISO();
-    render();
+    navigateIfConfirmed(() => {
+      datePicker.value = todayISO();
+      render();
+    });
   });
   document.getElementById('prevDayBtn').addEventListener('click', () => {
-    datePicker.value = addDays(datePicker.value || todayISO(), -1);
-    render();
+    navigateIfConfirmed(() => {
+      datePicker.value = addDays(currentRenderedDate, -1);
+      render();
+    });
   });
   document.getElementById('nextDayBtn').addEventListener('click', () => {
-    datePicker.value = addDays(datePicker.value || todayISO(), 1);
-    render();
+    navigateIfConfirmed(() => {
+      datePicker.value = addDays(currentRenderedDate, 1);
+      render();
+    });
   });
 
   // ---------- Init ----------
