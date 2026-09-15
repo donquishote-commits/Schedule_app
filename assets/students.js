@@ -102,6 +102,20 @@
     const body = document.createElement('div');
     body.className = 'class-card-body';
 
+    if ((classes[className] || []).length > 1) {
+      const sortBtn = document.createElement('button');
+      sortBtn.type = 'button';
+      sortBtn.className = 'btn btn-ghost btn-small sort-alpha-btn';
+      sortBtn.textContent = 'ترتيب أبجدي';
+      sortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        classes[className].sort((a, b) => a.localeCompare(b, 'ar'));
+        saveClasses();
+        render();
+      });
+      body.appendChild(sortBtn);
+    }
+
     const list = document.createElement('ul');
     list.className = 'student-list';
 
@@ -112,6 +126,39 @@
       nameSpan.className = 'student-name';
       nameSpan.textContent = student;
       li.appendChild(nameSpan);
+
+      const moveBtns = document.createElement('div');
+      moveBtns.className = 'student-move-btns';
+
+      const upBtn = document.createElement('button');
+      upBtn.type = 'button';
+      upBtn.className = 'student-move-btn';
+      upBtn.textContent = '▲';
+      upBtn.disabled = index === 0;
+      upBtn.addEventListener('click', () => {
+        const arr = classes[className];
+        if (index === 0) return;
+        [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+        saveClasses();
+        render();
+      });
+      moveBtns.appendChild(upBtn);
+
+      const downBtn = document.createElement('button');
+      downBtn.type = 'button';
+      downBtn.className = 'student-move-btn';
+      downBtn.textContent = '▼';
+      downBtn.disabled = index === (classes[className] || []).length - 1;
+      downBtn.addEventListener('click', () => {
+        const arr = classes[className];
+        if (index === arr.length - 1) return;
+        [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+        saveClasses();
+        render();
+      });
+      moveBtns.appendChild(downBtn);
+
+      li.appendChild(moveBtns);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -151,7 +198,6 @@
       if (!name) return;
       classes[className] = classes[className] || [];
       classes[className].push(name);
-      classes[className].sort((a, b) => a.localeCompare(b, 'ar'));
       saveClasses();
       render();
     });

@@ -463,6 +463,31 @@ main {
 }
 .student-list .student-remove:hover { color: var(--danger); }
 
+.student-move-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.student-move-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.65rem;
+  line-height: 1;
+  padding: 2px 5px;
+}
+.student-move-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.sort-alpha-btn {
+  margin-bottom: 8px;
+}
+
 .student-form {
   display: flex;
   gap: 8px;
