@@ -151,6 +151,7 @@
       if (!name) return;
       classes[className] = classes[className] || [];
       classes[className].push(name);
+      classes[className].sort((a, b) => a.localeCompare(b, 'ar'));
       saveClasses();
       render();
     });
