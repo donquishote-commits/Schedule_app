@@ -38,10 +38,10 @@
     '12 ع 1', '12 ع 2', '12 ع 3', '12 ع 4', '12 ع 5', '12 ع 6', '12 ع 7', '12 ع 8',
   ];
 
-  // A soft, muted pastel color per room — same room always gets the same
-  // color (hashed from its name), so no two schedule entries need manual
-  // color-picking and colors stay consistent everywhere that room appears.
-  const DEFAULT_ROOM_COLOR = '#ced3e0'; // entries with no room (e.g. staff meetings)
+  // A soft, muted pastel color per subject — same subject always gets the
+  // same color, so no manual color-picking is needed and colors stay
+  // consistent everywhere that subject appears.
+  const DEFAULT_COLOR = '#ced3e0'; // entries with no subject
 
   function hashString(str) {
     let hash = 0;
@@ -60,9 +60,18 @@
     return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
   }
 
-  function colorForRoom(room) {
-    const key = (room || '').trim();
-    if (!key) return DEFAULT_ROOM_COLOR;
+  // The known subjects get evenly-spaced hues (deliberately distinct from
+  // each other); any other subject (an older free-text entry, e.g. "اجتماع
+  // القسم الأسبوعي") falls back to a hash-derived hue so it's still
+  // consistent, just not guaranteed distinct from the fixed palette.
+  const SUBJECT_COLORS = Object.fromEntries(
+    SUBJECTS.map((s, i) => [s, hslToHex(i * (360 / SUBJECTS.length), 42, 82)])
+  );
+
+  function colorForSubject(subject) {
+    const key = (subject || '').trim();
+    if (!key) return DEFAULT_COLOR;
+    if (SUBJECT_COLORS[key]) return SUBJECT_COLORS[key];
     const hue = hashString(key) % 360;
     return hslToHex(hue, 42, 82); // moderate saturation, high lightness — calm, not gaudy
   }
@@ -112,7 +121,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
-      return DEFAULT_CLASSES.map(c => ({ ...c, color: colorForRoom(c.room), notes: [...c.notes] }));
+      return DEFAULT_CLASSES.map(c => ({ ...c, color: colorForSubject(c.subject), notes: [...c.notes] }));
     } catch (e) {
       console.error('Failed to load schedule from storage', e);
       return [];
@@ -204,7 +213,7 @@
   function renderClassBlock(c) {
     const block = document.createElement('div');
     block.className = 'class-block';
-    block.style.background = c.color || colorForRoom(c.room);
+    block.style.background = c.color || colorForSubject(c.subject);
 
     const subject = document.createElement('span');
     subject.className = 'subject';
@@ -380,7 +389,7 @@
     const room = roomSelect.value.trim();
     const day = Number(daySelect.value);
     const periodKey = isNaN(Number(periodSelect.value)) ? periodSelect.value : Number(periodSelect.value);
-    const color = colorForRoom(room);
+    const color = colorForSubject(subject);
 
     const conflict = findClass(day, periodKey);
     if (conflict && conflict.id !== editingId) {
