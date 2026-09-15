@@ -740,6 +740,88 @@ main {
 }
 
 
+/* In-class tools modal (من الدور؟ / تقسيم مجموعات) */
+.tools-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.tools-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.tools-section h3 {
+  font-size: 0.95rem;
+  margin: 0 0 10px;
+}
+.tools-pick-display {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 22px 12px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+}
+.tools-pick-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+.tools-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tools-groups-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.tools-groups-input {
+  width: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+}
+.tools-groups-result {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.tools-group-box {
+  flex: 1 1 140px;
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.tools-group-box strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--primary-dark);
+}
+.tools-group-box ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
 /* ---------- Reports page ---------- */
 
 #reportsContainer {

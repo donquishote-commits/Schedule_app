@@ -298,6 +298,16 @@
         copyAbsentees(session, dateISO, roster, copyBtn);
       });
       header.appendChild(copyBtn);
+
+      const toolsBtn = document.createElement('button');
+      toolsBtn.type = 'button';
+      toolsBtn.className = 'btn btn-ghost btn-small';
+      toolsBtn.textContent = '🎲 أدوات الحصة';
+      toolsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openToolsModal(session, dateISO, roster);
+      });
+      header.appendChild(toolsBtn);
     }
     card.appendChild(header);
 
@@ -487,6 +497,159 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // ---------- In-class tools (من الدور؟ / تقسيم مجموعات) ----------
+  // Scoped to a single session/class every time it's opened, so there's
+  // no way for one class's roster to leak into another's tool state.
+  const toolsModal = document.getElementById('toolsModal');
+  const toolsModalTitle = document.getElementById('toolsModalTitle');
+  const toolsModalBody = document.getElementById('toolsModalBody');
+  const closeToolsModalBtn = document.getElementById('closeToolsModalBtn');
+
+  function shuffled(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function closeToolsModal() {
+    toolsModal.hidden = true;
+    toolsModalBody.innerHTML = '';
+  }
+  closeToolsModalBtn.addEventListener('click', closeToolsModal);
+  toolsModal.addEventListener('click', (e) => { if (e.target === toolsModal) closeToolsModal(); });
+
+  function openToolsModal(session, dateISO, roster) {
+    // Only students marked حاضر/متأخر today take part — absentees can't
+    // be picked or grouped into an activity they're not in class for.
+    const present = roster.filter(name => statusOf(getEntry(dateISO, session.id, name)) !== 'absent');
+
+    toolsModalTitle.textContent = `أدوات الحصة — ${session.subject}`;
+    toolsModalBody.innerHTML = '';
+
+    if (present.length === 0) {
+      const msg = document.createElement('p');
+      msg.className = 'hint-text';
+      msg.textContent = 'ما فيه طلاب حاضرين اليوم بهذي الحصة.';
+      toolsModalBody.appendChild(msg);
+      toolsModal.hidden = false;
+      return;
+    }
+
+    // ----- من الدور؟ -----
+    const pickSection = document.createElement('div');
+    pickSection.className = 'tools-section';
+    pickSection.innerHTML = '<h3>🎲 من الدور؟</h3>';
+
+    const pickDisplay = document.createElement('div');
+    pickDisplay.className = 'tools-pick-display';
+    pickDisplay.textContent = 'اضغط "اختر طالب" للبدء';
+    pickSection.appendChild(pickDisplay);
+
+    const pickHint = document.createElement('p');
+    pickHint.className = 'tools-pick-hint';
+    pickSection.appendChild(pickHint);
+
+    let pool = shuffled(present);
+    function updatePickHint() {
+      pickHint.textContent = pool.length > 0
+        ? `تبقّى ${pool.length} من ${present.length} لم يُختاروا بعد`
+        : 'تم اختيار الجميع! اضغط "إعادة تعيين" للبدء من جديد.';
+    }
+    updatePickHint();
+
+    const pickBtnRow = document.createElement('div');
+    pickBtnRow.className = 'tools-btn-row';
+    const pickBtn = document.createElement('button');
+    pickBtn.type = 'button';
+    pickBtn.className = 'btn btn-primary';
+    pickBtn.textContent = 'اختر طالب';
+    pickBtn.addEventListener('click', () => {
+      if (pool.length === 0) return;
+      const idx = Math.floor(Math.random() * pool.length);
+      const [name] = pool.splice(idx, 1);
+      pickDisplay.textContent = name;
+      updatePickHint();
+    });
+    const resetPickBtn = document.createElement('button');
+    resetPickBtn.type = 'button';
+    resetPickBtn.className = 'btn btn-ghost';
+    resetPickBtn.textContent = 'إعادة تعيين';
+    resetPickBtn.addEventListener('click', () => {
+      pool = shuffled(present);
+      pickDisplay.textContent = 'اضغط "اختر طالب" للبدء';
+      updatePickHint();
+    });
+    pickBtnRow.appendChild(pickBtn);
+    pickBtnRow.appendChild(resetPickBtn);
+    pickSection.appendChild(pickBtnRow);
+
+    toolsModalBody.appendChild(pickSection);
+
+    // ----- تقسيم مجموعات عشوائي -----
+    const groupsSection = document.createElement('div');
+    groupsSection.className = 'tools-section';
+    groupsSection.innerHTML = '<h3>👥 تقسيم مجموعات عشوائي</h3>';
+
+    const groupsControlRow = document.createElement('div');
+    groupsControlRow.className = 'tools-btn-row';
+    const groupsLabel = document.createElement('label');
+    groupsLabel.className = 'tools-groups-label';
+    groupsLabel.append('عدد المجموعات:');
+    const groupsInput = document.createElement('input');
+    groupsInput.type = 'number';
+    groupsInput.min = '2';
+    groupsInput.max = String(Math.max(2, present.length));
+    groupsInput.value = String(Math.min(4, Math.max(2, Math.round(present.length / 4) || 2)));
+    groupsInput.className = 'tools-groups-input';
+    groupsLabel.appendChild(groupsInput);
+    const groupsBtn = document.createElement('button');
+    groupsBtn.type = 'button';
+    groupsBtn.className = 'btn btn-primary';
+    groupsBtn.textContent = 'قسّم';
+    groupsControlRow.appendChild(groupsLabel);
+    groupsControlRow.appendChild(groupsBtn);
+    groupsSection.appendChild(groupsControlRow);
+
+    const groupsResult = document.createElement('div');
+    groupsResult.className = 'tools-groups-result';
+    groupsSection.appendChild(groupsResult);
+
+    groupsBtn.addEventListener('click', () => {
+      let n = parseInt(groupsInput.value, 10);
+      if (!n || n < 2) n = 2;
+      if (n > present.length) n = present.length;
+      groupsInput.value = String(n);
+
+      const shuffledStudents = shuffled(present);
+      const groups = Array.from({ length: n }, () => []);
+      shuffledStudents.forEach((name, i) => groups[i % n].push(name));
+
+      groupsResult.innerHTML = '';
+      groups.forEach((members, i) => {
+        const box = document.createElement('div');
+        box.className = 'tools-group-box';
+        const title = document.createElement('strong');
+        title.textContent = `مجموعة ${i + 1}`;
+        box.appendChild(title);
+        const ul = document.createElement('ul');
+        members.forEach(name => {
+          const li = document.createElement('li');
+          li.textContent = name;
+          ul.appendChild(li);
+        });
+        box.appendChild(ul);
+        groupsResult.appendChild(box);
+      });
+    });
+
+    toolsModalBody.appendChild(groupsSection);
+
+    toolsModal.hidden = false;
   }
 
   // ---------- Date controls ----------
