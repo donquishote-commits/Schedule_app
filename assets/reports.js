@@ -133,7 +133,11 @@
     const rows = buildExportRows(className);
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = EXPORT_HEADER.map((_, i) => ({ wch: i === 0 ? 20 : 14 }));
+    // Mirrors the sheet so column A (اسم الطالب) opens on the right, same
+    // as the on-screen table — the data/column order itself is unchanged.
+    ws['!sheetViews'] = [{ rightToLeft: true }];
     const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
     XLSX.utils.book_append_sheet(wb, ws, safeSheetName(className));
     XLSX.writeFile(wb, `${safeFileName(className)}.xlsx`);
   }
@@ -148,11 +152,13 @@
     }
 
     const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
     const usedNames = new Set();
     classNames.forEach(className => {
       const rows = buildExportRows(className);
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!cols'] = EXPORT_HEADER.map((_, i) => ({ wch: i === 0 ? 20 : 14 }));
+      ws['!sheetViews'] = [{ rightToLeft: true }];
 
       let sheetName = safeSheetName(className);
       let suffix = 2;
