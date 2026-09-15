@@ -38,6 +38,21 @@
     '12 ع 1', '12 ع 2', '12 ع 3', '12 ع 4', '12 ع 5', '12 ع 6', '12 ع 7', '12 ع 8',
   ];
 
+  // Which صفوف each subject can be taught in. A subject not listed here
+  // (an older free-text entry, e.g. "اجتماع القسم الأسبوعي") isn't tied to
+  // any grade, so it's offered the full room list.
+  const SUBJECT_ROOMS = {
+    'دولة الكويت': ROOMS.filter(r => r.startsWith('10-')),
+    'الصحة النفسية': ROOMS.filter(r => r.startsWith('11 ')),
+    'الفلسفة': ROOMS.filter(r => r.startsWith('12 د')),
+    'علم النفس': ROOMS.filter(r => r.startsWith('11 د')),
+    'الدستور': ROOMS.filter(r => r.startsWith('12 ')),
+  };
+
+  function roomsForSubject(subject) {
+    return SUBJECT_ROOMS[subject] || ROOMS;
+  }
+
   // A soft, muted pastel color per subject — same subject always gets the
   // same color, so no manual color-picking is needed and colors stay
   // consistent everywhere that subject appears.
@@ -294,6 +309,15 @@
     selectEl.value = currentValue || '';
   }
 
+  // Re-filters the room list whenever the subject changes, so only صفوف
+  // valid for that subject are offered. Keeps the current room selected
+  // if it's still valid for the new subject; clears it otherwise.
+  subjectSelect.addEventListener('change', () => {
+    const validRooms = roomsForSubject(subjectSelect.value);
+    const roomToKeep = validRooms.includes(roomSelect.value) ? roomSelect.value : '';
+    populateSelect(roomSelect, validRooms, roomToKeep, '— بدون —', false, true);
+  });
+
   function openModal() {
     modal.hidden = false;
   }
@@ -312,7 +336,7 @@
     classForm.reset();
     document.getElementById('classId').value = '';
     populateSelect(subjectSelect, SUBJECTS, '', 'اختر المادة', true);
-    populateSelect(roomSelect, ROOMS, '', '— بدون —', false, true);
+    populateSelect(roomSelect, roomsForSubject(''), '', '— بدون —', false, true);
     daySelect.value = dayKey;
     periodSelect.value = periodKey;
     openModal();
@@ -328,7 +352,7 @@
 
     document.getElementById('classId').value = c.id;
     populateSelect(subjectSelect, SUBJECTS, c.subject, 'اختر المادة', true);
-    populateSelect(roomSelect, ROOMS, c.room || '', '— بدون —', false, true);
+    populateSelect(roomSelect, roomsForSubject(c.subject), c.room || '', '— بدون —', false, true);
     daySelect.value = c.day;
     periodSelect.value = c.periodKey;
 
