@@ -405,6 +405,13 @@ main {
   gap: 12px;
 }
 .row > label, .row > .form-field { flex: 1; }
+/* الحصة's label text ("الحصة الثانية (8:45 - 9:30)") needs more room
+   than it gets from an even split — اليوم's plain day names never need
+   more than a third of the row. Specificity has to match/beat the rule
+   above (.row > .form-field) since a plain .field-day class alone would
+   lose that tie despite coming later in the file. */
+.row > .form-field.field-day { flex: 0 0 95px; }
+.row > .form-field.field-period { flex: 1 1 auto; min-width: 0; }
 
 .modal-footer {
   display: flex;

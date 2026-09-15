@@ -368,9 +368,14 @@
       });
     }
 
+    // shortLabel (falling back to the full label when absent) is what the
+    // closed box shows — for الحصة, that's the period name without its
+    // time range, so the box never wraps to two lines on a narrow phone
+    // regardless of exact pixel width. The open list below always shows
+    // the full label, where each option gets its own row to spread into.
     function updateTriggerLabel() {
       const entry = entries.find(e => e.value === internalValue);
-      valueSpan.textContent = entry ? entry.label : '';
+      valueSpan.textContent = entry ? (entry.shortLabel || entry.label) : '';
       valueSpan.classList.toggle('placeholder', !entry || !!entry.disabled);
     }
 
@@ -473,6 +478,7 @@
   periodSelect.setEntries(CLASS_PERIODS.map(p => ({
     value: String(p.key),
     label: `${p.label} (${formatRange(to12(p.start), to12(p.end))})`,
+    shortLabel: p.label,
   })));
 
   // Re-filters the room list whenever the subject changes, so only صفوف
