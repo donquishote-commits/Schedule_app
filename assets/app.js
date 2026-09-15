@@ -532,6 +532,72 @@
     reader.readAsText(file);
   });
 
+  // ---------- Full backup (schedule + rosters + attendance + reports) ----------
+  // The schedule/roster export above only ever covered their own page's
+  // data — attendance and reports had no backup at all, so a lost or
+  // reset device meant losing them for good. This bundles all four
+  // localStorage stores into one file.
+  const FULL_BACKUP_KEYS = {
+    schedule: STORAGE_KEY,
+    students: 'schedule_app_students_v1',
+    attendance: 'schedule_app_attendance_v1',
+    reports: 'schedule_app_reports_v1',
+  };
+
+  document.getElementById('fullBackupExportBtn').addEventListener('click', () => {
+    const bundle = { exportedAt: new Date().toISOString(), version: 1, data: {} };
+    Object.entries(FULL_BACKUP_KEYS).forEach(([name, key]) => {
+      const raw = localStorage.getItem(key);
+      bundle.data[name] = raw ? JSON.parse(raw) : null;
+    });
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `نسخة-شاملة-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  const fullBackupImportFile = document.getElementById('fullBackupImportFile');
+  document.getElementById('fullBackupImportBtn').addEventListener('click', () => fullBackupImportFile.click());
+  fullBackupImportFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const bundle = JSON.parse(reader.result);
+        if (!bundle || typeof bundle.data !== 'object') throw new Error('Invalid format');
+
+        const hasExistingData = Object.values(FULL_BACKUP_KEYS).some(key => localStorage.getItem(key));
+        if (hasExistingData && !confirm(
+          'سيؤدي الاستيراد إلى استبدال كل البيانات الحالية — الجدول، قوائم الفصول، الحضور، والتقارير. هل تريد المتابعة؟'
+        )) {
+          fullBackupImportFile.value = '';
+          return;
+        }
+
+        Object.entries(FULL_BACKUP_KEYS).forEach(([name, key]) => {
+          if (bundle.data[name] !== undefined && bundle.data[name] !== null) {
+            localStorage.setItem(key, JSON.stringify(bundle.data[name]));
+          }
+        });
+
+        alert('تم استعادة النسخة الشاملة بنجاح. بتُعاد تحميل الصفحة الآن.');
+        location.reload();
+      } catch (err) {
+        alert('تعذّرت قراءة هذا الملف — تأكد من أنه نسخة احتياطية شاملة صادرة من هذا التطبيق.');
+      } finally {
+        fullBackupImportFile.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+
   // ---------- Export to Google Calendar (.ics) ----------
   function pad2(n) {
     return String(n).padStart(2, '0');
