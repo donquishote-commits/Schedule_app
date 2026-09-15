@@ -537,17 +537,116 @@
     return td;
   }
 
+  // ---------- Canned phrases (quick-insert into الدفتر/السلوك/ملاحظات) ----------
+  // Each of the three note fields keeps its own phrase list, seeded with
+  // sensible defaults on first use, then freely editable per teacher —
+  // phrases they add or remove are theirs, kept separate from the report
+  // data itself so clearing/archiving reports never touches this library.
+  const CANNED_PHRASES_KEY = 'schedule_app_canned_phrases_v1';
+  const DEFAULT_PHRASES = {
+    notebookReport: ['الدفتر منظم ومرتب', 'ناقص بعض الواجبات', 'ممتاز في تدوين الملاحظات', 'يحتاج متابعة أكثر للدفتر'],
+    behaviorReport: ['سلوك ممتاز داخل الصف', 'متعاون مع زملائه', 'يحتاج ضبط أكثر للسلوك', 'قائد إيجابي في النقاش'],
+    notes: ['متفوق دراسيًا', 'يحتاج متابعة من ولي الأمر', 'تحسن ملحوظ هذا الأسبوع', 'يحتاج تشجيع أكثر على المشاركة'],
+  };
+
+  function loadPhrases() {
+    const stored = loadJSON(CANNED_PHRASES_KEY, {});
+    let changed = false;
+    Object.keys(DEFAULT_PHRASES).forEach(field => {
+      if (!stored[field]) {
+        stored[field] = [...DEFAULT_PHRASES[field]];
+        changed = true;
+      }
+    });
+    if (changed) localStorage.setItem(CANNED_PHRASES_KEY, JSON.stringify(stored));
+    return stored;
+  }
+
+  let cannedPhrases = loadPhrases();
+  function savePhrases() {
+    localStorage.setItem(CANNED_PHRASES_KEY, JSON.stringify(cannedPhrases));
+  }
+
+  // Inserts at the cursor (or replaces a selection) instead of always
+  // appending, so a phrase can be dropped in the middle of an existing
+  // note; a space is added only when needed so words don't run together.
+  function insertPhraseAtCursor(textarea, phrase) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = textarea.value.slice(0, start);
+    const after = textarea.value.slice(end);
+    const needsSpace = before.length > 0 && !/\s$/.test(before);
+    const insertText = (needsSpace ? ' ' : '') + phrase;
+    textarea.value = before + insertText + after;
+    const cursorPos = (before + insertText).length;
+    textarea.focus();
+    textarea.setSelectionRange(cursorPos, cursorPos);
+  }
+
   // ---------- Note edit modal ----------
   const noteModal = document.getElementById('noteModal');
   const noteModalTitle = document.getElementById('noteModalTitle');
   const noteModalTextarea = document.getElementById('noteModalTextarea');
+  const noteModalPhrases = document.getElementById('noteModalPhrases');
+  const newPhraseInput = document.getElementById('newPhraseInput');
+  const addPhraseBtn = document.getElementById('addPhraseBtn');
   const noteModalForm = document.getElementById('noteModalForm');
   let activeNote = null;
+
+  function renderPhraseChips() {
+    noteModalPhrases.innerHTML = '';
+    if (!activeNote) return;
+    const list = cannedPhrases[activeNote.field] || [];
+    list.forEach((phrase, index) => {
+      const chip = document.createElement('div');
+      chip.className = 'phrase-chip';
+
+      const textBtn = document.createElement('button');
+      textBtn.type = 'button';
+      textBtn.className = 'phrase-chip-text';
+      textBtn.textContent = phrase;
+      textBtn.addEventListener('click', () => insertPhraseAtCursor(noteModalTextarea, phrase));
+      chip.appendChild(textBtn);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'phrase-chip-remove';
+      removeBtn.innerHTML = '&times;';
+      removeBtn.title = 'حذف هذي العبارة من القائمة';
+      removeBtn.addEventListener('click', () => {
+        cannedPhrases[activeNote.field].splice(index, 1);
+        savePhrases();
+        renderPhraseChips();
+      });
+      chip.appendChild(removeBtn);
+
+      noteModalPhrases.appendChild(chip);
+    });
+  }
+
+  addPhraseBtn.addEventListener('click', () => {
+    if (!activeNote) return;
+    const text = newPhraseInput.value.trim();
+    if (!text) return;
+    cannedPhrases[activeNote.field] = cannedPhrases[activeNote.field] || [];
+    cannedPhrases[activeNote.field].push(text);
+    savePhrases();
+    newPhraseInput.value = '';
+    renderPhraseChips();
+  });
+  newPhraseInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPhraseBtn.click();
+    }
+  });
 
   function openNoteModal(className, studentName, field, label, btn) {
     activeNote = { className, studentName, field, btn };
     noteModalTitle.textContent = `${label} — ${studentName}`;
     noteModalTextarea.value = getReportEntry(className, studentName)[field] || '';
+    newPhraseInput.value = '';
+    renderPhraseChips();
     noteModal.hidden = false;
     noteModalTextarea.focus();
   }

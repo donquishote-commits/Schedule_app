@@ -740,6 +740,58 @@ main {
 }
 
 
+/* Canned-phrase quick-insert (note edit modal) */
+.phrase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.phrase-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.phrase-chip-text {
+  border: none;
+  background: none;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+}
+.phrase-chip-text:hover { background: var(--bg); }
+.phrase-chip-remove {
+  border: none;
+  border-right: 1px solid var(--border);
+  background: none;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.phrase-chip-remove:hover { color: var(--danger); }
+.phrase-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.phrase-add-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+}
+
 /* Student profile modal */
 .profile-section {
   margin-top: 16px;
