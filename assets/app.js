@@ -452,7 +452,15 @@
   window.addEventListener('resize', () => {
     document.querySelectorAll('.custom-select.open').forEach(el => el._closeCustomSelect());
   });
-  modal.addEventListener('scroll', () => {
+  // Capture phase is needed so this also sees the modal's own body
+  // scrolling (the trigger moving under a now-stale fixed popup) — but
+  // that also means it sees an open list's OWN internal overflow-y:auto
+  // scroll (touch-dragging through a long room list), since 'scroll'
+  // doesn't bubble but capture still reaches descendants either way.
+  // Closing on that would slam the list shut on every scroll gesture, so
+  // scrolling inside a list's own options must not count.
+  modal.addEventListener('scroll', (e) => {
+    if (e.target.closest && e.target.closest('.custom-select-options')) return;
     document.querySelectorAll('.custom-select.open').forEach(el => el._closeCustomSelect());
   }, true);
 
