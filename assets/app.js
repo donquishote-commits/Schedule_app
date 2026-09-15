@@ -714,10 +714,25 @@
         alert('ما وافقت على الإشعارات. جرب الزر مرة ثانية ووافق من نافذة المتصفح.');
         return;
       }
-      new Notification('الفلسفة', {
+      const options = {
         body: 'تبدأ بعد 10 دقائق — 12 د 1',
         icon: 'assets/icons/icon-192.png',
-      });
+      };
+      try {
+        // On mobile (and any page controlled by a service worker), the
+        // plain `new Notification()` constructor is disallowed and throws
+        // silently — it has to go through the service worker registration
+        // instead. This works on both desktop and mobile.
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification('الفلسفة', options);
+        } else {
+          new Notification('الفلسفة', options);
+        }
+      } catch (err) {
+        console.error('Notification failed', err);
+        alert('ما قدرت أطلع الإشعار على هالجهاز/المتصفح. تأكد إنك فاتح التطبيق من أيقونته بالشاشة الرئيسية إذا كنت على آيفون.');
+      }
     });
   } else if (testNotifBtn) {
     testNotifBtn.title = 'الإشعارات مو مدعومة بهذا المتصفح';
