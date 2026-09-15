@@ -155,6 +155,13 @@ main {
   color: var(--break-text);
   font-size: 0.8rem;
   padding: 4px;
+  text-align: right;
+}
+
+.break-row .break-label {
+  position: sticky;
+  right: 0;
+  display: inline-block;
 }
 
 .class-cell {

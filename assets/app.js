@@ -187,7 +187,13 @@
         tr.className = 'break-row';
         const td = document.createElement('td');
         td.colSpan = DAYS.length + 1;
-        td.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
+        // The label sits in its own sticky span so it stays put in the
+        // viewport while horizontally scrolling — the <td> itself still
+        // spans the full scrollable width behind it.
+        const label = document.createElement('span');
+        label.className = 'break-label';
+        label.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
+        td.appendChild(label);
         tr.appendChild(td);
         tbody.appendChild(tr);
         return;
