@@ -154,14 +154,18 @@ main {
   background: var(--break-bg);
   color: var(--break-text);
   font-size: 0.8rem;
-  padding: 4px;
-  text-align: right;
+  height: 24px;
+  position: relative;
 }
 
+/* Positioned absolutely and kept centered on the visible viewport (not
+   the full scrollable width) by JS on scroll/resize — CSS alone (sticky)
+   can only pin to an edge, not track a moving center. */
 .break-row .break-label {
-  position: sticky;
-  right: 0;
-  display: inline-block;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
 }
 
 .class-cell {

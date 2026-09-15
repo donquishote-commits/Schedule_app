@@ -187,9 +187,10 @@
         tr.className = 'break-row';
         const td = document.createElement('td');
         td.colSpan = DAYS.length + 1;
-        // The label sits in its own sticky span so it stays put in the
-        // viewport while horizontally scrolling — the <td> itself still
-        // spans the full scrollable width behind it.
+        // The label sits in its own absolutely-positioned span, kept
+        // horizontally centered on the visible viewport by JS (see
+        // centerBreakLabels) — the <td> itself still spans the full
+        // scrollable width behind it.
         const label = document.createElement('span');
         label.className = 'break-label';
         label.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
@@ -229,6 +230,25 @@
     });
 
     gridEl.appendChild(tbody);
+    centerBreakLabels();
+  }
+
+  // Keeps each break-row label centered on the part of the table that's
+  // actually visible, not the full scrollable width — recomputed on every
+  // scroll/resize since the visible window keeps moving underneath it.
+  const scheduleWrapEl = document.querySelector('.schedule-wrap');
+  function centerBreakLabels() {
+    if (!scheduleWrapEl) return;
+    const clientWidth = scheduleWrapEl.clientWidth;
+    const scrolled = Math.abs(scheduleWrapEl.scrollLeft);
+    scheduleWrapEl.querySelectorAll('.break-label').forEach(label => {
+      const offset = (clientWidth - label.offsetWidth) / 2 + scrolled;
+      label.style.right = `${Math.max(0, offset)}px`;
+    });
+  }
+  if (scheduleWrapEl) {
+    scheduleWrapEl.addEventListener('scroll', centerBreakLabels, { passive: true });
+    window.addEventListener('resize', centerBreakLabels);
   }
 
   function renderClassBlock(c) {
