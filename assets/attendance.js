@@ -554,9 +554,36 @@
     if (timerDisplayEl) timerDisplayEl.textContent = formatTime(timerSeconds);
   }
 
+  // Keeps the screen from auto-locking while the timer runs — a locked
+  // screen freezes this page's JS just like switching away from it does,
+  // so without this the countdown (and its alert sound) would silently
+  // stall the moment the phone dims. Only covers the screen-lock case:
+  // the browser force-releases this the instant the tab itself goes to
+  // the background (switching apps/tabs), which needs a server-backed
+  // push notification to work around — out of scope for this app.
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch (e) { /* not supported, or permission denied — timer still runs as long as the screen stays on */ }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && timerRunning && !wakeLock) acquireWakeLock();
+  });
+
   function timerDone() {
     timerRunning = false;
     clearInterval(timerInterval);
+    releaseWakeLock();
     playBeep();
     if (timerDisplayEl) timerDisplayEl.classList.add('tools-timer-done');
     if (timerStatusEl) timerStatusEl.textContent = '⏰ انتهى الوقت!';
@@ -571,6 +598,7 @@
     if (timerRunning || timerSeconds <= 0) return;
     timerRunning = true;
     if (timerStatusEl) timerStatusEl.textContent = '';
+    acquireWakeLock();
     timerInterval = setInterval(() => {
       timerSeconds--;
       updateTimerDisplay();
@@ -581,6 +609,7 @@
   function pauseTimer() {
     timerRunning = false;
     clearInterval(timerInterval);
+    releaseWakeLock();
   }
 
   function resetTimer(minutes) {
@@ -635,6 +664,11 @@
     controlRow.appendChild(startBtn);
     controlRow.appendChild(pauseBtn);
     timerSection.appendChild(controlRow);
+
+    const hint = document.createElement('p');
+    hint.className = 'tools-timer-hint';
+    hint.textContent = 'المؤقت يمنع قفل الشاشة تلقائيًا طول ما هو شغّال قدّامك. لكن لو بدّلت لتطبيق أو تبويب ثاني، المتصفح يبطّئ العدّ أو يوقفه، وما توصلك رنة الانتهاء إلا لما ترجع لهذي الصفحة — خلّها مفتوحة قدّامك وقت النشاط لأفضل دقة.';
+    timerSection.appendChild(hint);
 
     toolsModalBody.appendChild(timerSection);
   }
