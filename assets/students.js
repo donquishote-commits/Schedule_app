@@ -2,6 +2,8 @@
   'use strict';
 
   const STORAGE_KEY = 'schedule_app_students_v1';
+  const SCHEDULE_KEY = 'schedule_app_classes_ar_v1';
+  const REPORTS_KEY = 'schedule_app_reports_v1';
 
   // Forces strict left-to-right character order (LTR override, not just
   // isolate — a plain isolate isn't enough when a digit run sits right
@@ -28,6 +30,68 @@
 
   function saveClasses() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
+  }
+
+  // Renaming a class here isn't just a label change: the schedule page
+  // links a صف to its roster by matching this exact name against each
+  // class entry's room field, and the reports page keeps its per-student
+  // fields under this same name. So a rename has to also update those two
+  // other pages' storage, or the roster would silently detach from the
+  // schedule and lose its report data.
+  function renameClass(oldName, newName) {
+    if (classes[newName]) {
+      alert(`فيه فصل بالاسم "${isolateLTR(newName)}" موجود مسبقًا. اختر اسم ثاني، أو احذف أحد الفصلين أولًا.`);
+      return false;
+    }
+
+    classes[newName] = classes[oldName];
+    delete classes[oldName];
+    if (openClasses.has(oldName)) {
+      openClasses.delete(oldName);
+      openClasses.add(newName);
+    }
+    saveClasses();
+
+    let updatedSessions = 0;
+    try {
+      const scheduleRaw = localStorage.getItem(SCHEDULE_KEY);
+      if (scheduleRaw) {
+        const scheduleClasses = JSON.parse(scheduleRaw);
+        scheduleClasses.forEach(c => {
+          if ((c.room || '').trim() === oldName) {
+            c.room = newName;
+            updatedSessions++;
+          }
+        });
+        if (updatedSessions > 0) localStorage.setItem(SCHEDULE_KEY, JSON.stringify(scheduleClasses));
+      }
+    } catch (e) {
+      console.error('Failed to update schedule rooms after rename', e);
+    }
+
+    let movedReports = false;
+    try {
+      const reportsRaw = localStorage.getItem(REPORTS_KEY);
+      if (reportsRaw) {
+        const reports = JSON.parse(reportsRaw);
+        if (reports[oldName]) {
+          reports[newName] = reports[oldName];
+          delete reports[oldName];
+          localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+          movedReports = true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to move reports after rename', e);
+    }
+
+    const notes = [];
+    if (updatedSessions > 0) notes.push(`${updatedSessions} حصة بالجدول`);
+    if (movedReports) notes.push('بيانات التقارير');
+    if (notes.length > 0) {
+      alert(`تم تغيير الاسم إلى "${isolateLTR(newName)}"، وتحديث الربط مع: ${notes.join(' و')}.`);
+    }
+    return true;
   }
 
   // ---------- Rendering ----------
@@ -68,6 +132,20 @@
     countEl.className = 'student-count';
     countEl.textContent = `${students.length} طالب`;
     header.appendChild(countEl);
+
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'btn btn-ghost btn-small';
+    renameBtn.textContent = '✏️ إعادة تسمية';
+    renameBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const input = prompt('الاسم الجديد للفصل:', className);
+      if (input === null) return; // cancelled
+      const newName = input.trim();
+      if (!newName || newName === className) return;
+      if (renameClass(className, newName)) render();
+    });
+    header.appendChild(renameBtn);
 
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
