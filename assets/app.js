@@ -587,7 +587,7 @@
           }
         });
 
-        alert('تم استعادة النسخة الشاملة بنجاح. بتُعاد تحميل الصفحة الآن.');
+        alert('تم استعادة النسخة الشاملة بنجاح. سيُعاد تحميل الصفحة الآن.');
         location.reload();
       } catch (err) {
         alert('تعذّرت قراءة هذا الملف — تأكد من أنه نسخة احتياطية شاملة صادرة من هذا التطبيق.');
@@ -673,7 +673,7 @@
 
   document.getElementById('exportCalendarBtn').addEventListener('click', () => {
     if (classes.length === 0) {
-      alert('ما فيه حصص مضافة بعد.');
+      alert('لا توجد حصص مضافة بعد.');
       return;
     }
     const blob = new Blob([buildICS()], { type: 'text/calendar;charset=utf-8' });
@@ -685,7 +685,7 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    alert('نزل ملف التقويم. افتح Google Calendar من الكمبيوتر ← إعدادات (أيقونة الترس) ← استيراد وتصدير ← استيراد، واختر هذا الملف.\n\nملاحظة: هذا تصدير لمرة واحدة — أي تعديل لاحق بالجدول يحتاج تصدير واستيراد من جديد.');
+    alert('تم تنزيل ملف التقويم. افتح تطبيق Google Calendar من الحاسوب ← الإعدادات (أيقونة الترس) ← استيراد وتصدير ← استيراد، ثم اختر هذا الملف.\n\nملاحظة: هذا تصدير لمرة واحدة فقط — أي تعديل لاحق على الجدول يتطلب تصديرًا واستيرادًا من جديد.');
   });
 
   // ---------- Init ----------
@@ -703,7 +703,7 @@
   if (testNotifBtn && 'Notification' in window) {
     testNotifBtn.addEventListener('click', async () => {
       if (Notification.permission === 'denied') {
-        alert('الإشعارات محظورة من إعدادات المتصفح لهذا الموقع. لازم تسمح لها يدويًا من إعدادات المتصفح أولًا.');
+        alert('الإشعارات محظورة من إعدادات المتصفح لهذا الموقع. يجب السماح بها يدويًا من إعدادات المتصفح أولًا.');
         return;
       }
       let permission = Notification.permission;
@@ -711,7 +711,7 @@
         permission = await Notification.requestPermission();
       }
       if (permission !== 'granted') {
-        alert('ما وافقت على الإشعارات. جرب الزر مرة ثانية ووافق من نافذة المتصفح.');
+        alert('لم توافق على الإشعارات. جرّب الزر مرة أخرى ووافق من نافذة المتصفح.');
         return;
       }
       const options = {
@@ -731,11 +731,11 @@
         }
       } catch (err) {
         console.error('Notification failed', err);
-        alert('ما قدرت أطلع الإشعار على هالجهاز/المتصفح. تأكد إنك فاتح التطبيق من أيقونته بالشاشة الرئيسية إذا كنت على آيفون.');
+        alert('تعذّر عرض الإشعار على هذا الجهاز أو المتصفح. تأكد من فتح التطبيق من أيقونته على الشاشة الرئيسية إذا كنت تستخدم آيفون.');
       }
     });
   } else if (testNotifBtn) {
-    testNotifBtn.title = 'الإشعارات مو مدعومة بهذا المتصفح';
+    testNotifBtn.title = 'الإشعارات غير مدعومة في هذا المتصفح';
     testNotifBtn.disabled = true;
   }
 
@@ -746,7 +746,7 @@
   if (forceUpdateBtn) {
     forceUpdateBtn.addEventListener('click', async () => {
       forceUpdateBtn.disabled = true;
-      forceUpdateBtn.textContent = 'جاري التحديث...';
+      forceUpdateBtn.textContent = 'جارٍ التحديث…';
       try {
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();

@@ -238,7 +238,7 @@
 
     if (!dayInfo) {
       noScheduleState.hidden = false;
-      noScheduleState.textContent = 'ما فيه حصص بعطلة نهاية الأسبوع.';
+      noScheduleState.textContent = 'لا توجد حصص في عطلة نهاية الأسبوع.';
       return;
     }
 
@@ -248,7 +248,7 @@
 
     noScheduleState.hidden = sessions.length > 0;
     if (sessions.length === 0) {
-      noScheduleState.textContent = 'ما فيه حصص مجدولة بهذا اليوم.';
+      noScheduleState.textContent = 'لا توجد حصص مجدولة في هذا اليوم.';
       return;
     }
 
@@ -318,8 +318,8 @@
       const msg = document.createElement('div');
       msg.className = 'no-roster-msg';
       msg.innerHTML = className
-        ? `ما فيه قائمة طلاب لفصل "${escapeHTML(isolateLTR(className))}" بعد. أضفها من <a href="students.html">صفحة قوائم الفصول</a>.`
-        : `هذي الحصة ما فيها اسم فصل محدد (حقل الغرفة فاضي). عدّلها من <a href="index.html">صفحة الجدول</a> حتى تربطها بقائمة الطلاب.`;
+        ? `لا توجد قائمة طلاب لفصل "${escapeHTML(isolateLTR(className))}" بعد. أضفها من <a href="students.html">صفحة قوائم الفصول</a>.`
+        : `لا يوجد اسم فصل محدد لهذه الحصة (حقل الغرفة فارغ). عدّلها من <a href="index.html">صفحة الجدول</a> لربطها بقائمة الطلاب.`;
       body.appendChild(msg);
     } else {
       ensureRecorded(dateISO, session.id, roster);
@@ -467,7 +467,7 @@
     const absentees = roster.filter(name => statusOf(getEntry(dateISO, session.id, name)) === 'absent');
 
     if (absentees.length === 0) {
-      alert('ما فيه طلاب غايبين بهذي الحصة اليوم.');
+      alert('لا يوجد طلاب غائبون في هذه الحصة اليوم.');
       return;
     }
 
@@ -667,7 +667,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'tools-timer-hint';
-    hint.textContent = 'المؤقت يمنع قفل الشاشة تلقائيًا طول ما هو شغّال قدّامك. لكن لو بدّلت لتطبيق أو تبويب ثاني، المتصفح يبطّئ العدّ أو يوقفه، وما توصلك رنة الانتهاء إلا لما ترجع لهذي الصفحة — خلّها مفتوحة قدّامك وقت النشاط لأفضل دقة.';
+    hint.textContent = 'يمنع المؤقت قفل الشاشة تلقائيًا طالما كان يعمل أمامك. أما إذا انتقلت إلى تطبيق أو تبويب آخر، فسيبطئ المتصفح العدّ أو يوقفه، ولن تصلك رنة الانتهاء إلا عند عودتك إلى هذه الصفحة — لذا اترك الصفحة مفتوحة أمامك أثناء النشاط لأفضل دقة.';
     timerSection.appendChild(hint);
 
     toolsModalBody.appendChild(timerSection);
@@ -695,7 +695,7 @@
     if (present.length === 0) {
       const msg = document.createElement('p');
       msg.className = 'hint-text';
-      msg.textContent = 'ما فيه طلاب حاضرين اليوم بهذي الحصة، فيصير التصويت والتقسيم بدون طلاب. المؤقت أعلاه يشتغل عادي.';
+      msg.textContent = 'لا يوجد طلاب حاضرون اليوم في هذه الحصة، لذلك لن يكون هناك طلاب لأداة "من الدور؟" أو تقسيم المجموعات. أما المؤقت أعلاه فيعمل بشكل طبيعي.';
       toolsModalBody.appendChild(msg);
       toolsModal.hidden = false;
       return;
@@ -840,7 +840,7 @@
   if (forceUpdateBtn) {
     forceUpdateBtn.addEventListener('click', async () => {
       forceUpdateBtn.disabled = true;
-      forceUpdateBtn.textContent = 'جاري التحديث...';
+      forceUpdateBtn.textContent = 'جارٍ التحديث…';
       try {
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();

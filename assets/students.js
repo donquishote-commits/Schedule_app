@@ -57,7 +57,7 @@
   // schedule and lose its report data.
   function renameClass(oldName, newName) {
     if (classes[newName]) {
-      alert(`فيه فصل بالاسم "${isolateLTR(newName)}" موجود مسبقًا. اختر اسم ثاني، أو احذف أحد الفصلين أولًا.`);
+      alert(`يوجد فصل بالاسم "${isolateLTR(newName)}" موجود مسبقًا. اختر اسمًا آخر، أو احذف أحد الفصلين أولًا.`);
       return false;
     }
 
@@ -121,7 +121,7 @@
     if (idx === -1) return false;
 
     if (roster.includes(newName)) {
-      alert(`فيه طالب بنفس الاسم "${newName}" موجود بهذا الفصل مسبقًا. اختر اسم ثاني.`);
+      alert(`يوجد طالب بالاسم نفسه "${newName}" في هذا الفصل مسبقًا. اختر اسمًا آخر.`);
       return false;
     }
 
@@ -385,7 +385,7 @@
     deleteBtn.textContent = 'حذف الفصل';
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!confirm(`حذف فصل "${isolateLTR(className)}" وكل الطلاب فيه؟`)) return;
+      if (!confirm(`حذف فصل "${isolateLTR(className)}" وجميع طلابه؟`)) return;
       delete classes[className];
       openClasses.delete(className);
       saveClasses();
@@ -634,13 +634,13 @@
         const parsedClassCount = Object.keys(parsed).length;
 
         if (parsedClassCount === 0) {
-          alert('ما قدرت ألقى فصول أو أسماء بهالملف. تأكد من الصيغة الموضحة بالأعلى.');
+          alert('تعذّر العثور على فصول أو أسماء في هذا الملف. تأكد من الصيغة الموضحة أعلاه.');
           return;
         }
 
         const totalStudents = Object.values(parsed).reduce((sum, arr) => sum + arr.length, 0);
-        const msg = `لقيت ${parsedClassCount} فصل و${totalStudents} طالب. ` +
-          `الاستيراد بيستبدل قوائم أي فصل بنفس الاسم موجود عندك حاليًا. تكمل؟`;
+        const msg = `تم العثور على ${parsedClassCount} فصل و${totalStudents} طالب. ` +
+          `سيستبدل الاستيراد قوائم أي فصل يحمل الاسم نفسه الموجود لديك حاليًا. هل تريد المتابعة؟`;
         if (!confirm(msg)) return;
 
         Object.assign(classes, parsed);
@@ -648,7 +648,7 @@
         render();
       } catch (err) {
         console.error(err);
-        alert('تعذّرت قراءة هذا الملف — تأكد إنه ملف إكسل (xlsx) صحيح.');
+        alert('تعذّرت قراءة هذا الملف — تأكد من أنه ملف إكسل (xlsx) صحيح.');
       } finally {
         importFile.value = '';
       }
@@ -708,7 +708,7 @@
   if (forceUpdateBtn) {
     forceUpdateBtn.addEventListener('click', async () => {
       forceUpdateBtn.disabled = true;
-      forceUpdateBtn.textContent = 'جاري التحديث...';
+      forceUpdateBtn.textContent = 'جارٍ التحديث…';
       try {
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();

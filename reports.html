@@ -23,24 +23,24 @@
     <a href="index.html" class="btn btn-ghost">جدولي</a>
     <a href="students.html" class="btn btn-ghost">قوائم الفصول</a>
     <a href="attendance.html" class="btn btn-ghost">المتابعة اليومية</a>
-    <button id="exportAllExcelBtn" class="btn btn-ghost" title="ملف إكسل واحد فيه ورقة منفصلة لكل فصل">تصدير كل الفصول Excel</button>
-    <button id="newTermBtn" class="btn btn-danger" title="يمسح درجات الاختبار والأعمال لكل الطلاب، بعد تنزيل نسخة احتياطية تلقائيًا">📚 بدء فصل دراسي جديد</button>
-    <button id="forceUpdateBtn" class="btn btn-ghost" title="يحدّث التطبيق لآخر نسخة بدون ما يمسح أي بيانات محفوظة">🔄 تحديث التطبيق</button>
+    <button id="exportAllExcelBtn" class="btn btn-ghost" title="ملف إكسل واحد يحتوي على ورقة منفصلة لكل فصل">تصدير كل الفصول Excel</button>
+    <button id="newTermBtn" class="btn btn-danger" title="يحذف درجات الاختبار والأعمال لجميع الطلاب، بعد تنزيل نسخة احتياطية تلقائيًا">📚 بدء فصل دراسي جديد</button>
+    <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
   </div>
 </header>
 
 <main>
   <p class="hint-text">
-    الحضور/التأخر/الغياب والمشاركة تُحسب تلقائيًا من صفحة "المتابعة اليومية".
-    احتساب المشاركة يبدأ من 20/12 فما بعد — أي يوم حضره الطالب بدون تقييم محدد يُحسب "متوسط".
-    درجة الاختبار والدفتر والسلوك والملاحظات تكتبها بنفسك هنا وتبقى محفوظة.
-    كل شي هنا خاص بجهازك بس.
+    يُحسب الحضور/التأخر/الغياب والمشاركة تلقائيًا من صفحة "المتابعة اليومية".
+    يبدأ احتساب المشاركة من 20/12 فما بعد — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".
+    أما درجة الاختبار والدفتر والسلوك والملاحظات فتكتبها بنفسك هنا وتبقى محفوظة.
+    كل ما هنا خاص بجهازك فقط.
   </p>
 
   <div id="overviewCard" class="overview-card" hidden></div>
 
   <div id="reportsContainer"></div>
-  <div id="emptyState" class="empty-state" hidden>ما فيه فصول بعد. أضف فصولك من صفحة قوائم الفصول أولًا.</div>
+  <div id="emptyState" class="empty-state" hidden>لا توجد فصول بعد. أضف فصولك من صفحة قوائم الفصول أولًا.</div>
 </main>
 
 <div id="printArea" class="print-area"></div>

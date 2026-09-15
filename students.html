@@ -27,7 +27,7 @@
     <button id="importBtn" class="btn btn-ghost" title="استيراد ملف إكسل (xlsx)">استيراد إكسل</button>
     <button id="exportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية من القوائم">تصدير نسخة احتياطية</button>
     <button id="importBackupBtn" class="btn btn-ghost" title="استعادة القوائم من نسخة احتياطية">استيراد نسخة احتياطية</button>
-    <button id="forceUpdateBtn" class="btn btn-ghost" title="يحدّث التطبيق لآخر نسخة بدون ما يمسح أي بيانات محفوظة">🔄 تحديث التطبيق</button>
+    <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
     <input type="file" id="importFile" accept=".xlsx,.xls" hidden>
     <input type="file" id="importBackupFile" accept="application/json" hidden>
   </div>
@@ -35,13 +35,13 @@
 
 <main>
   <p class="hint-text">
-    البيانات هنا تتحفظ في متصفح جهازك بس ولا ترفع لأي مكان — خاصة فيك تمامًا.
-    الاستيراد يقبل ملف إكسل فيه ورقة (sheet) منفصلة لكل فصل (اسم الورقة = اسم الفصل، وعمود فيه أسماء الطلاب)،
-    أو ورقة وحدة فيها عمود "الفصل" وعمود "الاسم".
+    تُحفظ هذه البيانات في متصفح جهازك فقط ولا تُرفع إلى أي مكان آخر — فهي خاصة بك تمامًا.
+    يقبل الاستيراد ملف إكسل يحتوي على ورقة (sheet) منفصلة لكل فصل (اسم الورقة = اسم الفصل، وعمود يحتوي على أسماء الطلاب)،
+    أو ورقة واحدة تحتوي على عمود "الفصل" وعمود "الاسم".
   </p>
 
   <div id="classesContainer"></div>
-  <div id="emptyState" class="empty-state" hidden>ما فيه فصول مضافة بعد. اضغط "+ إضافة فصل" أو استورد ملف إكسل.</div>
+  <div id="emptyState" class="empty-state" hidden>لا توجد فصول مضافة بعد. اضغط "+ إضافة فصل" أو استورد ملف إكسل.</div>
 </main>
 
 <!-- Add class modal -->

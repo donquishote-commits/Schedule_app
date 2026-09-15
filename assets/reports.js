@@ -208,7 +208,7 @@
   function exportAllClassesExcel() {
     const classNames = Object.keys(students).sort((a, b) => a.localeCompare(b, 'ar'));
     if (classNames.length === 0) {
-      alert('ما فيه فصول بعد.');
+      alert('لا توجد فصول بعد.');
       return;
     }
 
@@ -278,14 +278,14 @@
     });
 
     if (scoredCount === 0) {
-      alert('ما فيه درجات مسجّلة أصلًا لمسحها.');
+      alert('لا توجد درجات مسجّلة أصلًا لحذفها.');
       return;
     }
 
     if (!confirm(
-      `بدء فصل دراسي جديد بيمسح درجة الاختبار والأعمال لـ ${scoredCount} طالب عبر كل الفصول.\n\n` +
-      'الجدول، قوائم الطلاب، الحضور، والدفتر/السلوك/الملاحظات تبقى كما هي بدون أي تغيير.\n\n' +
-      'بينزّل لك نسخة احتياطية شاملة أول قبل المسح. متابعة؟'
+      `سيؤدي بدء فصل دراسي جديد إلى حذف درجة الاختبار والأعمال لـ ${scoredCount} طالب عبر جميع الفصول.\n\n` +
+      'يبقى الجدول وقوائم الطلاب والحضور والدفتر/السلوك/الملاحظات كما هي دون أي تغيير.\n\n' +
+      'سيتم تنزيل نسخة احتياطية شاملة أولًا قبل الحذف. هل تريد المتابعة؟'
     )) return;
 
     downloadFullBackup('نسخة-قبل-الأرشفة');
@@ -299,7 +299,7 @@
     });
     saveReports();
 
-    alert('تم مسح الدرجات لكل الطلاب. باقي البيانات محفوظة كما هي.');
+    alert('تم حذف الدرجات لجميع الطلاب. بقية البيانات محفوظة كما هي.');
     render();
   }
 
@@ -544,16 +544,34 @@
   // data itself so clearing/archiving reports never touches this library.
   const CANNED_PHRASES_KEY = 'schedule_app_canned_phrases_v1';
   const DEFAULT_PHRASES = {
+    notebookReport: ['الدفتر منظم ومرتب', 'ناقص بعض الواجبات', 'ممتاز في تدوين الملاحظات', 'يحتاج إلى متابعة أكبر للدفتر'],
+    behaviorReport: ['سلوك ممتاز داخل الصف', 'متعاون مع زملائه', 'يحتاج إلى ضبط أكبر للسلوك', 'قائد إيجابي في النقاش'],
+    notes: ['متفوق دراسيًا', 'يحتاج إلى متابعة من ولي الأمر', 'تحسن ملحوظ هذا الأسبوع', 'يحتاج إلى مزيد من التشجيع على المشاركة'],
+  };
+  // The wording above was tightened to Modern Standard Arabic after this
+  // feature first shipped — a device that already seeded the earlier
+  // phrasing keeps it forever otherwise, since loadPhrases() below only
+  // fills in a field that's missing entirely. This one-time check swaps a
+  // field back to today's defaults ONLY if it still exactly matches the
+  // old wording untouched, so a teacher who has already added/removed
+  // phrases of their own is never overwritten.
+  const OLD_DEFAULT_PHRASES = {
     notebookReport: ['الدفتر منظم ومرتب', 'ناقص بعض الواجبات', 'ممتاز في تدوين الملاحظات', 'يحتاج متابعة أكثر للدفتر'],
     behaviorReport: ['سلوك ممتاز داخل الصف', 'متعاون مع زملائه', 'يحتاج ضبط أكثر للسلوك', 'قائد إيجابي في النقاش'],
     notes: ['متفوق دراسيًا', 'يحتاج متابعة من ولي الأمر', 'تحسن ملحوظ هذا الأسبوع', 'يحتاج تشجيع أكثر على المشاركة'],
   };
+  function arraysEqual(a, b) {
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => v === b[i]);
+  }
 
   function loadPhrases() {
     const stored = loadJSON(CANNED_PHRASES_KEY, {});
     let changed = false;
     Object.keys(DEFAULT_PHRASES).forEach(field => {
       if (!stored[field]) {
+        stored[field] = [...DEFAULT_PHRASES[field]];
+        changed = true;
+      } else if (arraysEqual(stored[field], OLD_DEFAULT_PHRASES[field])) {
         stored[field] = [...DEFAULT_PHRASES[field]];
         changed = true;
       }
@@ -612,7 +630,7 @@
       removeBtn.type = 'button';
       removeBtn.className = 'phrase-chip-remove';
       removeBtn.innerHTML = '&times;';
-      removeBtn.title = 'حذف هذي العبارة من القائمة';
+      removeBtn.title = 'حذف هذه العبارة من القائمة';
       removeBtn.addEventListener('click', () => {
         cannedPhrases[activeNote.field].splice(index, 1);
         savePhrases();
@@ -687,7 +705,7 @@
   if (forceUpdateBtn) {
     forceUpdateBtn.addEventListener('click', async () => {
       forceUpdateBtn.disabled = true;
-      forceUpdateBtn.textContent = 'جاري التحديث...';
+      forceUpdateBtn.textContent = 'جارٍ التحديث…';
       try {
         if ('serviceWorker' in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();
