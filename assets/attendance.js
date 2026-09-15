@@ -516,9 +516,134 @@
     return a;
   }
 
+  // ----- مؤقت نشاط -----
+  // One shared timer for the whole page (a teacher only runs one activity
+  // at a time), kept in module state rather than rebuilt per modal open so
+  // it keeps counting down even if the teacher closes the panel to check
+  // something else — only من الدور؟/تقسيم مجموعات reset on every open,
+  // since those are meant to start a fresh round each time.
+  const pageTitle = document.title;
+  let timerSeconds = 5 * 60;
+  let timerInterval = null;
+  let timerRunning = false;
+  let timerDisplayEl = null;
+  let timerStatusEl = null;
+
+  function formatTime(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+      osc.onended = () => ctx.close();
+    } catch (e) { /* no audio support — visual/title change below still shows it's done */ }
+  }
+
+  function updateTimerDisplay() {
+    if (timerDisplayEl) timerDisplayEl.textContent = formatTime(timerSeconds);
+  }
+
+  function timerDone() {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    playBeep();
+    if (timerDisplayEl) timerDisplayEl.classList.add('tools-timer-done');
+    if (timerStatusEl) timerStatusEl.textContent = '⏰ انتهى الوقت!';
+    if (document.hidden) {
+      document.title = '⏰ انتهى الوقت! — ' + pageTitle;
+      const restoreTitle = () => { document.title = pageTitle; window.removeEventListener('focus', restoreTitle); };
+      window.addEventListener('focus', restoreTitle);
+    }
+  }
+
+  function startTimer() {
+    if (timerRunning || timerSeconds <= 0) return;
+    timerRunning = true;
+    if (timerStatusEl) timerStatusEl.textContent = '';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) timerDone();
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    timerRunning = false;
+    clearInterval(timerInterval);
+  }
+
+  function resetTimer(minutes) {
+    pauseTimer();
+    timerSeconds = minutes * 60;
+    if (timerDisplayEl) timerDisplayEl.classList.remove('tools-timer-done');
+    if (timerStatusEl) timerStatusEl.textContent = '';
+    updateTimerDisplay();
+  }
+
+  function renderTimerSection() {
+    const timerSection = document.createElement('div');
+    timerSection.className = 'tools-section';
+    timerSection.innerHTML = '<h3>⏱ مؤقت نشاط</h3>';
+
+    const display = document.createElement('div');
+    display.className = 'tools-timer-display';
+    if (timerSeconds <= 0 && !timerRunning) display.classList.add('tools-timer-done');
+    display.textContent = formatTime(timerSeconds);
+    timerSection.appendChild(display);
+    timerDisplayEl = display;
+
+    const status = document.createElement('p');
+    status.className = 'tools-pick-hint';
+    timerSection.appendChild(status);
+    timerStatusEl = status;
+
+    const presetRow = document.createElement('div');
+    presetRow.className = 'tools-btn-row';
+    [1, 3, 5, 10].forEach(min => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-ghost btn-small';
+      btn.textContent = `${min} د`;
+      btn.addEventListener('click', () => resetTimer(min));
+      presetRow.appendChild(btn);
+    });
+    timerSection.appendChild(presetRow);
+
+    const controlRow = document.createElement('div');
+    controlRow.className = 'tools-btn-row';
+    const startBtn = document.createElement('button');
+    startBtn.type = 'button';
+    startBtn.className = 'btn btn-primary';
+    startBtn.textContent = 'ابدأ';
+    startBtn.addEventListener('click', startTimer);
+    const pauseBtn = document.createElement('button');
+    pauseBtn.type = 'button';
+    pauseBtn.className = 'btn btn-ghost';
+    pauseBtn.textContent = 'إيقاف مؤقت';
+    pauseBtn.addEventListener('click', pauseTimer);
+    controlRow.appendChild(startBtn);
+    controlRow.appendChild(pauseBtn);
+    timerSection.appendChild(controlRow);
+
+    toolsModalBody.appendChild(timerSection);
+  }
+
   function closeToolsModal() {
     toolsModal.hidden = true;
     toolsModalBody.innerHTML = '';
+    timerDisplayEl = null;
+    timerStatusEl = null;
   }
   closeToolsModalBtn.addEventListener('click', closeToolsModal);
   toolsModal.addEventListener('click', (e) => { if (e.target === toolsModal) closeToolsModal(); });
@@ -531,10 +656,12 @@
     toolsModalTitle.textContent = `أدوات الحصة — ${session.subject}`;
     toolsModalBody.innerHTML = '';
 
+    renderTimerSection();
+
     if (present.length === 0) {
       const msg = document.createElement('p');
       msg.className = 'hint-text';
-      msg.textContent = 'ما فيه طلاب حاضرين اليوم بهذي الحصة.';
+      msg.textContent = 'ما فيه طلاب حاضرين اليوم بهذي الحصة، فيصير التصويت والتقسيم بدون طلاب. المؤقت أعلاه يشتغل عادي.';
       toolsModalBody.appendChild(msg);
       toolsModal.hidden = false;
       return;

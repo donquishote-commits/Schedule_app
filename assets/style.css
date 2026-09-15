@@ -792,6 +792,22 @@ main {
   background: var(--surface);
 }
 
+.tools-timer-display {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+}
+.tools-timer-display.tools-timer-done {
+  color: var(--danger);
+}
+
 /* Student profile modal */
 .profile-section {
   margin-top: 16px;
