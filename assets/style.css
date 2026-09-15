@@ -4,8 +4,8 @@
   --border: #ddd0ab;
   --text: #362a1c;
   --text-muted: #7d6a4f;
-  --primary: #2f4d3a;
-  --primary-dark: #22392a;
+  --primary: #4f7a56;
+  --primary-dark: #3f6146;
   --danger: #a8432f;
   --break-bg: #efe3c4;
   --break-text: #8a5f1f;
@@ -126,11 +126,11 @@ h1, h2, h3 {
 .btn-primary:hover { background: var(--primary-dark); }
 
 .btn-ghost {
-  background: transparent;
+  background: #efe2bf;
   color: var(--text);
   border: 1px solid var(--border);
 }
-.btn-ghost:hover { background: var(--bg); }
+.btn-ghost:hover { background: #e4ead9; }
 
 .btn-danger {
   background: transparent;
