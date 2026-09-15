@@ -263,7 +263,10 @@
   // placeholder. If currentValue isn't in the fixed list (an older
   // free-text entry from before this became a dropdown), it's injected as
   // an extra option so editing that entry never silently loses its value.
-  function populateSelect(selectEl, options, currentValue, placeholderLabel, placeholderDisabled) {
+  // wrapBidi should only be true for values that mix digits with Arabic
+  // letters (room codes like "12 ع 4") — applying the LTR override to
+  // plain Arabic text (subject names) scrambles their letter order.
+  function populateSelect(selectEl, options, currentValue, placeholderLabel, placeholderDisabled, wrapBidi) {
     selectEl.innerHTML = '';
     const placeholder = document.createElement('option');
     placeholder.value = '';
@@ -276,7 +279,7 @@
     values.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v;
-      opt.textContent = isolateLTR(v);
+      opt.textContent = wrapBidi ? isolateLTR(v) : v;
       selectEl.appendChild(opt);
     });
     selectEl.value = currentValue || '';
@@ -300,7 +303,7 @@
     classForm.reset();
     document.getElementById('classId').value = '';
     populateSelect(subjectSelect, SUBJECTS, '', 'اختر المادة', true);
-    populateSelect(roomSelect, ROOMS, '', '— بدون —', false);
+    populateSelect(roomSelect, ROOMS, '', '— بدون —', false, true);
     daySelect.value = dayKey;
     periodSelect.value = periodKey;
     openModal();
@@ -316,7 +319,7 @@
 
     document.getElementById('classId').value = c.id;
     populateSelect(subjectSelect, SUBJECTS, c.subject, 'اختر المادة', true);
-    populateSelect(roomSelect, ROOMS, c.room || '', '— بدون —', false);
+    populateSelect(roomSelect, ROOMS, c.room || '', '— بدون —', false, true);
     daySelect.value = c.day;
     periodSelect.value = c.periodKey;
 
