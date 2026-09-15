@@ -470,6 +470,17 @@ main {
 }
 .student-list .student-remove:hover { color: var(--danger); }
 
+.student-list .student-edit {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px;
+  opacity: 0.75;
+}
+.student-list .student-edit:hover { opacity: 1; }
+
 .student-move-btns {
   display: flex;
   flex-direction: column;

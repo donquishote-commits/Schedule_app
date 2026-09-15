@@ -4,6 +4,7 @@
   const STORAGE_KEY = 'schedule_app_students_v1';
   const SCHEDULE_KEY = 'schedule_app_classes_ar_v1';
   const REPORTS_KEY = 'schedule_app_reports_v1';
+  const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
 
   // Forces strict left-to-right character order (LTR override, not just
   // isolate — a plain isolate isn't enough when a digit run sits right
@@ -106,6 +107,74 @@
     if (movedReports) notes.push('بيانات التقارير');
     if (notes.length > 0) {
       alert(`تم تغيير الاسم إلى "${isolateLTR(newName)}"، وتحديث الربط مع: ${notes.join(' و')}.`);
+    }
+    return true;
+  }
+
+  // Same reasoning as renameClass: attendance and reports keep their
+  // per-student data under this exact name, so a name correction has to
+  // carry that history along with it or the student would show up as if
+  // they'd never been marked present or graded before.
+  function renameStudent(className, oldName, newName) {
+    const roster = classes[className] || [];
+    const idx = roster.indexOf(oldName);
+    if (idx === -1) return false;
+
+    if (roster.includes(newName)) {
+      alert(`فيه طالب بنفس الاسم "${newName}" موجود بهذا الفصل مسبقًا. اختر اسم ثاني.`);
+      return false;
+    }
+
+    roster[idx] = newName;
+    saveClasses();
+
+    let movedReport = false;
+    try {
+      const reportsRaw = localStorage.getItem(REPORTS_KEY);
+      if (reportsRaw) {
+        const reports = JSON.parse(reportsRaw);
+        if (reports[className] && reports[className][oldName]) {
+          reports[className][newName] = reports[className][oldName];
+          delete reports[className][oldName];
+          localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+          movedReport = true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to move report data after student rename', e);
+    }
+
+    let movedSessions = 0;
+    try {
+      const scheduleRaw = localStorage.getItem(SCHEDULE_KEY);
+      const attendanceRaw = localStorage.getItem(ATTENDANCE_KEY);
+      if (scheduleRaw && attendanceRaw) {
+        const scheduleClasses = JSON.parse(scheduleRaw);
+        const classIds = new Set(
+          scheduleClasses.filter(c => (c.room || '').trim() === className).map(c => c.id)
+        );
+        const attendance = JSON.parse(attendanceRaw);
+        Object.keys(attendance).forEach(sessionKey => {
+          const idPart = sessionKey.split('::')[1];
+          if (!classIds.has(idPart)) return;
+          const entry = attendance[sessionKey];
+          if (entry && entry[oldName]) {
+            entry[newName] = entry[oldName];
+            delete entry[oldName];
+            movedSessions++;
+          }
+        });
+        if (movedSessions > 0) localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance));
+      }
+    } catch (e) {
+      console.error('Failed to move attendance records after student rename', e);
+    }
+
+    const notes = [];
+    if (movedSessions > 0) notes.push(`${movedSessions} سجل حضور`);
+    if (movedReport) notes.push('بيانات التقرير');
+    if (notes.length > 0) {
+      alert(`تم تغيير الاسم إلى "${newName}"، وتحديث الربط مع: ${notes.join(' و')}.`);
     }
     return true;
   }
@@ -253,6 +322,20 @@
       moveBtns.appendChild(downBtn);
 
       li.appendChild(moveBtns);
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'student-edit';
+      editBtn.textContent = '✏️';
+      editBtn.title = 'تعديل الاسم';
+      editBtn.addEventListener('click', () => {
+        const input = prompt('تعديل اسم الطالب:', student);
+        if (input === null) return; // cancelled
+        const newName = input.trim();
+        if (!newName || newName === student) return;
+        if (renameStudent(className, student, newName)) render();
+      });
+      li.appendChild(editBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
