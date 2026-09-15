@@ -386,6 +386,16 @@
           const keys = await caches.keys();
           await Promise.all(keys.map(k => caches.delete(k)));
         }
+        // Clearing the service worker's own Cache Storage above isn't
+        // enough by itself — the browser's plain HTTP cache can still
+        // consider assets/app.js etc. "fresh" and serve them straight
+        // from disk on reload without even asking the network. Force a
+        // real network fetch for every script/stylesheet this page
+        // loads so the HTTP cache holds the current bytes before reload.
+        const assetUrls = Array.from(document.querySelectorAll('script[src], link[rel="stylesheet"][href]'))
+          .map(el => el.src || el.href)
+          .filter(Boolean);
+        await Promise.all(assetUrls.map(url => fetch(url, { cache: 'reload' }).catch(() => {})));
       } finally {
         location.reload();
       }
