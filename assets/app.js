@@ -28,6 +28,45 @@
 
   const CLASS_PERIODS = PERIODS.filter(p => p.type === 'class');
 
+  const SUBJECTS = ['الفلسفة', 'علم النفس', 'الدستور', 'دولة الكويت', 'الصحة النفسية'];
+
+  const ROOMS = [
+    '10-1', '10-2', '10-3', '10-4', '10-5', '10-6', '10-7', '10-8', '10-9',
+    '11 د 1', '11 د 2', '11 د 3',
+    '11 ع 1', '11 ع 2', '11 ع 3', '11 ع 4', '11 ع 5', '11 ع 6', '11 ع 7', '11 ع 8',
+    '12 د 1', '12 د 2',
+    '12 ع 1', '12 ع 2', '12 ع 3', '12 ع 4', '12 ع 5', '12 ع 6', '12 ع 7', '12 ع 8',
+  ];
+
+  // A soft, muted pastel color per room — same room always gets the same
+  // color (hashed from its name), so no two schedule entries need manual
+  // color-picking and colors stay consistent everywhere that room appears.
+  const DEFAULT_ROOM_COLOR = '#ced3e0'; // entries with no room (e.g. staff meetings)
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const k = n => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  }
+
+  function colorForRoom(room) {
+    const key = (room || '').trim();
+    if (!key) return DEFAULT_ROOM_COLOR;
+    const hue = hashString(key) % 360;
+    return hslToHex(hue, 42, 82); // moderate saturation, high lightness — calm, not gaudy
+  }
+
   // Converts a 24-hour "HH:MM" period time to the informal 12-hour form
   // the school actually uses (no AM/PM marker, e.g. "13:05" -> "1:05").
   function to12(t) {
@@ -42,12 +81,12 @@
   // The user's real timetable, used to seed the schedule the first time
   // the app runs on a browser with no saved data yet.
   const DEFAULT_CLASSES = [
-    { id: 'seed-1', day: 0, periodKey: 1, subject: 'الفلسفة', room: '12د1', color: '#5b7fdb', notes: [] },
-    { id: 'seed-2', day: 2, periodKey: 6, subject: 'الفلسفة', room: '12د1', color: '#5b7fdb', notes: [] },
-    { id: 'seed-3', day: 2, periodKey: 7, subject: 'الدستور', room: '12ع4', color: '#2f9e77', notes: [] },
-    { id: 'seed-4', day: 3, periodKey: 3, subject: 'اجتماع القسم الأسبوعي', room: '', color: '#8b6fc9', notes: [] },
-    { id: 'seed-5', day: 4, periodKey: 2, subject: 'الدستور', room: '12ع6', color: '#2f9e77', notes: [] },
-    { id: 'seed-6', day: 4, periodKey: 7, subject: 'الدستور', room: '12ع5', color: '#2f9e77', notes: [] },
+    { id: 'seed-1', day: 0, periodKey: 1, subject: 'الفلسفة', room: '12 د 1', notes: [] },
+    { id: 'seed-2', day: 2, periodKey: 6, subject: 'الفلسفة', room: '12 د 1', notes: [] },
+    { id: 'seed-3', day: 2, periodKey: 7, subject: 'الدستور', room: '12 ع 4', notes: [] },
+    { id: 'seed-4', day: 3, periodKey: 3, subject: 'اجتماع القسم الأسبوعي', room: '', notes: [] },
+    { id: 'seed-5', day: 4, periodKey: 2, subject: 'الدستور', room: '12 ع 6', notes: [] },
+    { id: 'seed-6', day: 4, periodKey: 7, subject: 'الدستور', room: '12 ع 5', notes: [] },
   ];
 
   // Forces strict left-to-right character order so the RTL bidi algorithm
@@ -73,7 +112,7 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
-      return DEFAULT_CLASSES.map(c => ({ ...c, notes: [...c.notes] }));
+      return DEFAULT_CLASSES.map(c => ({ ...c, color: colorForRoom(c.room), notes: [...c.notes] }));
     } catch (e) {
       console.error('Failed to load schedule from storage', e);
       return [];
@@ -165,7 +204,7 @@
   function renderClassBlock(c) {
     const block = document.createElement('div');
     block.className = 'class-block';
-    block.style.background = c.color || '#5b7fdb';
+    block.style.background = c.color || colorForRoom(c.room);
 
     const subject = document.createElement('span');
     subject.className = 'subject';
@@ -198,6 +237,8 @@
   const classForm = document.getElementById('classForm');
   const daySelect = document.getElementById('day');
   const periodSelect = document.getElementById('period');
+  const subjectSelect = document.getElementById('subject');
+  const roomSelect = document.getElementById('room');
   const deleteBtn = document.getElementById('deleteBtn');
   const notesSection = document.getElementById('notesSection');
   const notesList = document.getElementById('notesList');
@@ -218,6 +259,29 @@
     periodSelect.appendChild(opt);
   });
 
+  // Rebuilds a <select>'s options from a fixed list, plus a leading
+  // placeholder. If currentValue isn't in the fixed list (an older
+  // free-text entry from before this became a dropdown), it's injected as
+  // an extra option so editing that entry never silently loses its value.
+  function populateSelect(selectEl, options, currentValue, placeholderLabel, placeholderDisabled) {
+    selectEl.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = placeholderLabel;
+    placeholder.disabled = !!placeholderDisabled;
+    selectEl.appendChild(placeholder);
+
+    const values = [...options];
+    if (currentValue && !values.includes(currentValue)) values.unshift(currentValue);
+    values.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = isolateLTR(v);
+      selectEl.appendChild(opt);
+    });
+    selectEl.value = currentValue || '';
+  }
+
   function openModal() {
     modal.hidden = false;
   }
@@ -235,9 +299,10 @@
     notesSection.hidden = true;
     classForm.reset();
     document.getElementById('classId').value = '';
+    populateSelect(subjectSelect, SUBJECTS, '', 'اختر المادة', true);
+    populateSelect(roomSelect, ROOMS, '', '— بدون —', false);
     daySelect.value = dayKey;
     periodSelect.value = periodKey;
-    document.getElementById('color').value = '#5b7fdb';
     openModal();
   }
 
@@ -250,11 +315,10 @@
     notesSection.hidden = false;
 
     document.getElementById('classId').value = c.id;
-    document.getElementById('subject').value = c.subject;
-    document.getElementById('room').value = c.room || '';
+    populateSelect(subjectSelect, SUBJECTS, c.subject, 'اختر المادة', true);
+    populateSelect(roomSelect, ROOMS, c.room || '', '— بدون —', false);
     daySelect.value = c.day;
     periodSelect.value = c.periodKey;
-    document.getElementById('color').value = c.color || '#5b7fdb';
 
     renderNotes(c);
     openModal();
@@ -309,11 +373,11 @@
 
   classForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const subject = document.getElementById('subject').value.trim();
-    const room = document.getElementById('room').value.trim();
+    const subject = subjectSelect.value.trim();
+    const room = roomSelect.value.trim();
     const day = Number(daySelect.value);
     const periodKey = isNaN(Number(periodSelect.value)) ? periodSelect.value : Number(periodSelect.value);
-    const color = document.getElementById('color').value;
+    const color = colorForRoom(room);
 
     const conflict = findClass(day, periodKey);
     if (conflict && conflict.id !== editingId) {

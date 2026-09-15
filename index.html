@@ -50,11 +50,11 @@
       <input type="hidden" id="classId">
 
       <label>المادة
-        <input type="text" id="subject" required placeholder="مثال: فلسفة">
+        <select id="subject" required></select>
       </label>
 
-      <label>الغرفة / القاعة
-        <input type="text" id="room" placeholder="مثال: قاعة 214">
+      <label>الصف
+        <select id="room"></select>
       </label>
 
       <div class="row">
@@ -65,10 +65,6 @@
           <select id="period"></select>
         </label>
       </div>
-
-      <label>اللون
-        <input type="color" id="color" value="#5b7fdb">
-      </label>
 
       <div class="modal-footer">
         <button type="button" id="deleteBtn" class="btn btn-danger" hidden>حذف</button>
