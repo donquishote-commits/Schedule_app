@@ -412,6 +412,29 @@
   // ---------- Init ----------
   render();
 
+  // Clears only the cached app files (service worker + Cache Storage) so a
+  // fresh version can take over — never touches localStorage, so the
+  // schedule/roster/attendance/report data stays exactly as it was.
+  const forceUpdateBtn = document.getElementById('forceUpdateBtn');
+  if (forceUpdateBtn) {
+    forceUpdateBtn.addEventListener('click', async () => {
+      forceUpdateBtn.disabled = true;
+      forceUpdateBtn.textContent = 'جاري التحديث...';
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } finally {
+        location.reload();
+      }
+    });
+  }
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch((e) => console.error('SW registration failed', e));
   }
