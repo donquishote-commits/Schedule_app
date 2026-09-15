@@ -179,6 +179,153 @@
     return true;
   }
 
+  // Same "old boolean -> new status string" translation attendance.js
+  // uses, duplicated here so the profile can read attendance history
+  // without needing attendance.js loaded on this page.
+  function statusOf(entry) {
+    if (!entry) return undefined;
+    if (entry.status) return entry.status;
+    if (entry.present === false) return 'absent';
+    if (entry.present === true) return 'present';
+    return undefined;
+  }
+
+  // Pulls together everything scattered across the schedule, attendance
+  // and reports stores for one student into a single read-only summary —
+  // the whole point of the "ملف الطالب" feature is not having to flip
+  // between three pages to see how one student is doing.
+  function computeStudentProfile(className, studentName) {
+    const stats = {
+      present: 0, late: 0, absent: 0,
+      excellent: 0, normal: 0, none: 0,
+      notebookMissing: 0, positive: 0, negative: 0,
+    };
+
+    try {
+      const scheduleRaw = localStorage.getItem(SCHEDULE_KEY);
+      const attendanceRaw = localStorage.getItem(ATTENDANCE_KEY);
+      if (scheduleRaw && attendanceRaw) {
+        const scheduleClasses = JSON.parse(scheduleRaw);
+        const classIds = new Set(
+          scheduleClasses.filter(c => (c.room || '').trim() === className).map(c => c.id)
+        );
+        const attendance = JSON.parse(attendanceRaw);
+        Object.keys(attendance).forEach(sk => {
+          const idPart = sk.split('::')[1];
+          if (!classIds.has(idPart)) return;
+          const entry = attendance[sk][studentName];
+          if (!entry) return;
+
+          const status = statusOf(entry);
+          if (status === 'present') stats.present++;
+          else if (status === 'late') stats.late++;
+          else if (status === 'absent') stats.absent++;
+
+          if (entry.participation === 'excellent') stats.excellent++;
+          else if (entry.participation === 'normal') stats.normal++;
+          else if (entry.participation === 'none') stats.none++;
+
+          if (entry.notebookMissing === true) stats.notebookMissing++;
+
+          if (entry.behavior === 'positive') stats.positive++;
+          else if (entry.behavior === 'negative') stats.negative++;
+        });
+      }
+    } catch (e) {
+      console.error('Failed to compute attendance stats for profile', e);
+    }
+
+    let report = {};
+    try {
+      const reportsRaw = localStorage.getItem(REPORTS_KEY);
+      if (reportsRaw) {
+        const reports = JSON.parse(reportsRaw);
+        report = (reports[className] && reports[className][studentName]) || {};
+      }
+    } catch (e) {
+      console.error('Failed to read report data for profile', e);
+    }
+
+    return { stats, report };
+  }
+
+  // ---------- Student profile modal ----------
+  const profileModal = document.getElementById('profileModal');
+  const profileModalTitle = document.getElementById('profileModalTitle');
+  const profileModalBody = document.getElementById('profileModalBody');
+  const closeProfileModalBtn = document.getElementById('closeProfileModalBtn');
+
+  function closeProfileModal() {
+    profileModal.hidden = true;
+    profileModalBody.innerHTML = '';
+  }
+  closeProfileModalBtn.addEventListener('click', closeProfileModal);
+  profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeProfileModal(); });
+
+  function profileRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    const l = document.createElement('span');
+    l.className = 'profile-row-label';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.className = 'profile-row-value';
+    v.textContent = value;
+    row.appendChild(l);
+    row.appendChild(v);
+    return row;
+  }
+
+  function openProfileModal(className, studentName) {
+    const { stats, report } = computeStudentProfile(className, studentName);
+    const totalDays = stats.present + stats.late + stats.absent;
+
+    profileModalTitle.textContent = `ملف الطالب — ${studentName}`;
+    profileModalBody.innerHTML = '';
+
+    const attSection = document.createElement('div');
+    attSection.className = 'profile-section';
+    attSection.innerHTML = '<h3>📅 الحضور</h3>';
+    if (totalDays === 0) {
+      attSection.appendChild(profileRow('لا يوجد سجل حضور بعد', ''));
+    } else {
+      const pct = Math.round((stats.present / totalDays) * 100);
+      attSection.appendChild(profileRow('نسبة الحضور', `${pct}%`));
+      attSection.appendChild(profileRow('حاضر', `${stats.present} يوم`));
+      attSection.appendChild(profileRow('متأخر', `${stats.late} يوم`));
+      attSection.appendChild(profileRow('غائب', `${stats.absent} يوم`));
+    }
+    profileModalBody.appendChild(attSection);
+
+    const partSection = document.createElement('div');
+    partSection.className = 'profile-section';
+    partSection.innerHTML = '<h3>🙋 المشاركة</h3>';
+    partSection.appendChild(profileRow('ممتاز', String(stats.excellent)));
+    partSection.appendChild(profileRow('متوسط', String(stats.normal)));
+    partSection.appendChild(profileRow('ضعيف', String(stats.none)));
+    profileModalBody.appendChild(partSection);
+
+    const otherSection = document.createElement('div');
+    otherSection.className = 'profile-section';
+    otherSection.innerHTML = '<h3>📔 الدفتر والسلوك</h3>';
+    otherSection.appendChild(profileRow('مرات عدم إحضار الدفتر', String(stats.notebookMissing)));
+    otherSection.appendChild(profileRow('سلوك إيجابي', String(stats.positive)));
+    otherSection.appendChild(profileRow('سلوك سلبي', String(stats.negative)));
+    profileModalBody.appendChild(otherSection);
+
+    const reportSection = document.createElement('div');
+    reportSection.className = 'profile-section';
+    reportSection.innerHTML = '<h3>📝 التقرير</h3>';
+    reportSection.appendChild(profileRow('درجة الاختبار', report.testScore !== undefined && report.testScore !== '' ? String(report.testScore) : '—'));
+    reportSection.appendChild(profileRow('درجة الأعمال', report.courseworkScore !== undefined && report.courseworkScore !== '' ? String(report.courseworkScore) : '—'));
+    reportSection.appendChild(profileRow('ملاحظات الدفتر', report.notebookReport || '—'));
+    reportSection.appendChild(profileRow('ملاحظات السلوك', report.behaviorReport || '—'));
+    reportSection.appendChild(profileRow('ملاحظات عامة', report.notes || '—'));
+    profileModalBody.appendChild(reportSection);
+
+    profileModal.hidden = false;
+  }
+
   // ---------- Rendering ----------
   const container = document.getElementById('classesContainer');
   const emptyState = document.getElementById('emptyState');
@@ -322,6 +469,14 @@
       moveBtns.appendChild(downBtn);
 
       li.appendChild(moveBtns);
+
+      const profileBtn = document.createElement('button');
+      profileBtn.type = 'button';
+      profileBtn.className = 'student-edit';
+      profileBtn.textContent = '👤';
+      profileBtn.title = 'ملف الطالب';
+      profileBtn.addEventListener('click', () => openProfileModal(className, student));
+      li.appendChild(profileBtn);
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';

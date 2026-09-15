@@ -740,6 +740,36 @@ main {
 }
 
 
+/* Student profile modal */
+.profile-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.profile-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.profile-section h3 {
+  font-size: 0.95rem;
+  margin: 0 0 8px;
+}
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 0.88rem;
+}
+.profile-row-label {
+  color: var(--text-muted);
+}
+.profile-row-value {
+  font-weight: 600;
+  text-align: left;
+}
+
 /* In-class tools modal (من الدور؟ / تقسيم مجموعات) */
 .tools-section {
   margin-top: 16px;
