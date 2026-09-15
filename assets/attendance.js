@@ -143,6 +143,61 @@
   const dayLabel = document.getElementById('dayLabel');
   const sessionsContainer = document.getElementById('sessionsContainer');
   const noScheduleState = document.getElementById('noScheduleState');
+  const daySummaryEl = document.getElementById('daySummary');
+
+  // Attendance percentages for the selected day, across every session
+  // scheduled that day — separate from renderInner's full rebuild so a
+  // single attendance click can refresh just this small block instead of
+  // re-rendering (and scroll-jumping) the whole page.
+  function computeDaySummary(dateISO) {
+    const weekday = isoToDate(dateISO).getDay();
+    const sessions = scheduleClasses.filter(c => c.day === weekday);
+    let present = 0, late = 0, absent = 0;
+    sessions.forEach(session => {
+      const className = (session.room || '').trim();
+      const roster = students[className];
+      if (!roster || roster.length === 0) return;
+      const entries = attendance[sessionKey(dateISO, session.id)] || {};
+      roster.forEach(name => {
+        const status = statusOf(entries[name]);
+        if (status === 'present') present++;
+        else if (status === 'late') late++;
+        else if (status === 'absent') absent++;
+      });
+    });
+    const total = present + late + absent;
+    return { present, late, absent, total };
+  }
+
+  function renderDaySummary(dateISO) {
+    if (!daySummaryEl) return;
+    const s = computeDaySummary(dateISO);
+    if (s.total === 0) {
+      daySummaryEl.hidden = true;
+      return;
+    }
+    daySummaryEl.hidden = false;
+
+    const pct = (n) => Math.round((n / s.total) * 100);
+    daySummaryEl.innerHTML = '';
+    [
+      { value: `${pct(s.present)}%`, label: `حضور (${s.present})` },
+      { value: `${pct(s.late)}%`, label: `تأخر (${s.late})` },
+      { value: `${pct(s.absent)}%`, label: `غياب (${s.absent})` },
+    ].forEach(t => {
+      const tile = document.createElement('div');
+      tile.className = 'day-summary-stat';
+      const value = document.createElement('span');
+      value.className = 'day-summary-value';
+      value.textContent = t.value;
+      const label = document.createElement('span');
+      label.className = 'day-summary-label';
+      label.textContent = t.label;
+      tile.appendChild(value);
+      tile.appendChild(label);
+      daySummaryEl.appendChild(tile);
+    });
+  }
 
   // Which sessions are expanded, by schedule id — collapsed by default,
   // remembered across date navigation (so "الفلسفة" stays open/closed as
@@ -178,6 +233,7 @@
     const dayInfo = DAYS.find(d => d.key === weekday);
     dayLabel.textContent = dayInfo ? dayInfo.label : '';
 
+    renderDaySummary(dateISO);
     sessionsContainer.innerHTML = '';
 
     if (!dayInfo) {
@@ -199,6 +255,11 @@
     sessions.forEach(session => {
       sessionsContainer.appendChild(renderSessionCard(session, dateISO));
     });
+
+    // Re-run after the session cards render: each one just called
+    // ensureRecorded, which may have written default "حاضر" entries that
+    // didn't exist yet when the summary was first computed above.
+    renderDaySummary(dateISO);
   }
 
   function renderSessionCard(session, dateISO) {
@@ -323,6 +384,7 @@
         setEntry(dateISO, session.id, studentName, { status: value, present: undefined });
         attButtons.forEach(b => { b.btn.className = 'pill-btn' + (b.value === value ? ` ${b.activeClass}` : ''); });
         updateStats();
+        renderDaySummary(dateISO);
       });
       attGroup.appendChild(btn);
       return { value, activeClass, btn };

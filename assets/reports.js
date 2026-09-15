@@ -87,96 +87,65 @@
     return { present, late, absent, participationAvg };
   }
 
-  // ---------- Overview (quick-glance stats across every class) ----------
+  // ---------- Overview (most-absent students, across every class) ----------
+  // Day-level attendance percentages live on the daily follow-up page
+  // instead, right where you take attendance — this page keeps only the
+  // thing that's actually useful to see here: who needs attention.
   function computeOverview() {
-    let totalPresent = 0, totalLate = 0, totalAbsent = 0;
     const perStudent = [];
 
     Object.keys(students).forEach(className => {
       (students[className] || []).forEach(studentName => {
         const agg = aggregateForStudent(className, studentName);
-        totalPresent += agg.present;
-        totalLate += agg.late;
-        totalAbsent += agg.absent;
-        const recordedDays = agg.present + agg.late + agg.absent;
-        if (recordedDays > 0) {
-          perStudent.push({ className, studentName, absent: agg.absent, recordedDays });
+        if (agg.absent > 0) {
+          perStudent.push({ className, studentName, absent: agg.absent });
         }
       });
     });
 
-    const recordedDays = totalPresent + totalLate + totalAbsent;
-    const attendanceRate = recordedDays > 0 ? (totalPresent + totalLate) / recordedDays * 100 : null;
-
     const topAbsentees = perStudent
-      .filter(s => s.absent > 0)
       .sort((a, b) => b.absent - a.absent)
       .slice(0, 8);
 
-    return { totalPresent, totalLate, totalAbsent, recordedDays, attendanceRate, topAbsentees };
+    return { topAbsentees };
   }
 
   function renderOverview() {
     const card = document.getElementById('overviewCard');
     const overview = computeOverview();
 
-    if (overview.recordedDays === 0) {
+    if (overview.topAbsentees.length === 0) {
       card.hidden = true;
       return;
     }
     card.hidden = false;
     card.innerHTML = '';
 
-    const stats = document.createElement('div');
-    stats.className = 'overview-stats';
-    const tiles = [
-      { value: `${overview.attendanceRate.toFixed(0)}%`, label: 'نسبة الحضور العامة' },
-      { value: overview.totalPresent, label: 'أيام حضور' },
-      { value: overview.totalLate, label: 'أيام تأخر' },
-      { value: overview.totalAbsent, label: 'أيام غياب' },
-    ];
-    tiles.forEach(t => {
-      const tile = document.createElement('div');
-      tile.className = 'overview-stat';
-      const value = document.createElement('span');
-      value.className = 'overview-stat-value';
-      value.textContent = t.value;
-      const label = document.createElement('span');
-      label.className = 'overview-stat-label';
-      label.textContent = t.label;
-      tile.appendChild(value);
-      tile.appendChild(label);
-      stats.appendChild(tile);
+    const section = document.createElement('div');
+    section.className = 'overview-absentees';
+    const heading = document.createElement('h3');
+    heading.textContent = 'أكثر الطلاب غيابًا';
+    section.appendChild(heading);
+
+    const list = document.createElement('ol');
+    overview.topAbsentees.forEach(s => {
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'overview-absentee-name';
+      nameSpan.textContent = s.studentName;
+      const classSpan = document.createElement('span');
+      classSpan.className = 'overview-absentee-class';
+      classSpan.textContent = isolateLTR(s.className);
+      const countSpan = document.createElement('span');
+      countSpan.className = 'overview-absentee-count';
+      countSpan.textContent = `${s.absent} غياب`;
+      li.appendChild(nameSpan);
+      li.appendChild(classSpan);
+      li.appendChild(countSpan);
+      list.appendChild(li);
     });
-    card.appendChild(stats);
-
-    if (overview.topAbsentees.length > 0) {
-      const section = document.createElement('div');
-      section.className = 'overview-absentees';
-      const heading = document.createElement('h3');
-      heading.textContent = 'أكثر الطلاب غيابًا';
-      section.appendChild(heading);
-
-      const list = document.createElement('ol');
-      overview.topAbsentees.forEach(s => {
-        const li = document.createElement('li');
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'overview-absentee-name';
-        nameSpan.textContent = s.studentName;
-        const classSpan = document.createElement('span');
-        classSpan.className = 'overview-absentee-class';
-        classSpan.textContent = isolateLTR(s.className);
-        const countSpan = document.createElement('span');
-        countSpan.className = 'overview-absentee-count';
-        countSpan.textContent = `${s.absent} غياب`;
-        li.appendChild(nameSpan);
-        li.appendChild(classSpan);
-        li.appendChild(countSpan);
-        list.appendChild(li);
-      });
-      section.appendChild(list);
-      card.appendChild(section);
-    }
+    section.appendChild(list);
+    card.appendChild(section);
   }
 
   // ---------- Export (Excel / PDF) ----------

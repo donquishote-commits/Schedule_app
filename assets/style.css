@@ -535,6 +535,36 @@ main {
   flex-wrap: wrap;
 }
 
+.day-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.day-summary-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.day-summary-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-summary-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .icon-btn-round {
   width: 34px;
   height: 34px;
@@ -724,40 +754,6 @@ main {
   border-radius: var(--radius);
   padding: 16px 18px;
   margin-bottom: 18px;
-}
-
-.overview-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 12px;
-}
-
-.overview-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  background: var(--bg);
-  border-radius: 8px;
-  text-align: center;
-}
-
-.overview-stat-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.overview-stat-label {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.overview-absentees {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
 }
 
 .overview-absentees h3 {
