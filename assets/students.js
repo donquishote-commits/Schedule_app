@@ -13,6 +13,22 @@
     return `‭${text}‬`;
   }
 
+  // A phone's own keyboard/locale can produce Arabic-Indic (٠١٢٣...) or
+  // Persian/Urdu (۰۱۲۳...) digits instead of the plain Western ones (0-9)
+  // this app's صف codes use. A class name typed or imported with those
+  // digits would silently fail to string-match its schedule room (e.g.
+  // "١٢ ع ٤" != "12 ع 4"), breaking the roster/schedule link — so every
+  // class name is normalized to Western digits before it's used as a key.
+  const ARABIC_INDIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+  const PERSIAN_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+  function normalizeDigits(str) {
+    return String(str).replace(/[٠-٩۰-۹]/g, (d) => {
+      const arabicIdx = ARABIC_INDIC_DIGITS.indexOf(d);
+      if (arabicIdx !== -1) return String(arabicIdx);
+      return String(PERSIAN_DIGITS.indexOf(d));
+    });
+  }
+
   // ---------- State ----------
   let classes = loadClasses(); // { className: [studentName, ...] }
   let openClasses = new Set(); // which class cards are expanded
@@ -141,7 +157,7 @@
       e.stopPropagation();
       const input = prompt('الاسم الجديد للفصل:', className);
       if (input === null) return; // cancelled
-      const newName = input.trim();
+      const newName = normalizeDigits(input.trim());
       if (!newName || newName === className) return;
       if (renameClass(className, newName)) render();
     });
@@ -306,7 +322,7 @@
 
   classForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const name = classNameInput.value.trim();
+    const name = normalizeDigits(classNameInput.value.trim());
     if (!name) return;
     if (!classes[name]) classes[name] = [];
     openClasses.add(name);
@@ -336,7 +352,7 @@
         const ws = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
         const names = extractNamesFromColumn(rows, 0);
-        if (names.length) result[sheetName.trim()] = names;
+        if (names.length) result[normalizeDigits(sheetName.trim())] = names;
       });
       return result;
     }
@@ -352,7 +368,7 @@
 
     if (classColIdx !== -1 && nameColIdx !== -1) {
       rows.slice(1).forEach(row => {
-        const cls = String(row[classColIdx] || '').trim();
+        const cls = normalizeDigits(String(row[classColIdx] || '').trim());
         const name = String(row[nameColIdx] || '').trim();
         if (cls && name) {
           (result[cls] = result[cls] || []).push(name);
@@ -362,7 +378,7 @@
     }
 
     const names = extractNamesFromColumn(rows, 0);
-    if (names.length) result[sheetName.trim()] = names;
+    if (names.length) result[normalizeDigits(sheetName.trim())] = names;
     return result;
   }
 
