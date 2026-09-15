@@ -138,6 +138,38 @@
     XLSX.writeFile(wb, `${safeFileName(className)}.xlsx`);
   }
 
+  // One workbook, one sheet per class — sheet names de-duplicated in case
+  // two class names collide after the 31-char/forbidden-character cleanup.
+  function exportAllClassesExcel() {
+    const classNames = Object.keys(students).sort((a, b) => a.localeCompare(b, 'ar'));
+    if (classNames.length === 0) {
+      alert('ما فيه فصول بعد.');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    const usedNames = new Set();
+    classNames.forEach(className => {
+      const rows = buildExportRows(className);
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = EXPORT_HEADER.map((_, i) => ({ wch: i === 0 ? 20 : 14 }));
+
+      let sheetName = safeSheetName(className);
+      let suffix = 2;
+      while (usedNames.has(sheetName)) {
+        const base = safeSheetName(className).slice(0, 28);
+        sheetName = `${base} ${suffix}`;
+        suffix++;
+      }
+      usedNames.add(sheetName);
+
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    const date = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `كل-الفصول-${date}.xlsx`);
+  }
+
   const printArea = document.getElementById('printArea');
 
   function exportClassPDF(className) {
@@ -411,6 +443,8 @@
 
   // ---------- Init ----------
   render();
+
+  document.getElementById('exportAllExcelBtn').addEventListener('click', exportAllClassesExcel);
 
   // Clears only the cached app files (service worker + Cache Storage) so a
   // fresh version can take over — never touches localStorage, so the
