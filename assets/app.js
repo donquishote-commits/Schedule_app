@@ -692,6 +692,38 @@
   saveClasses(); // persist seed data on first run so it's there on next load too
   renderGrid();
 
+  // Test-drive button (feature 3, not yet wired to the schedule): fires
+  // one sample notification immediately so you can see/feel what it looks
+  // like on your actual phone before we decide whether to build the real
+  // "10 minutes before each class" version. IMPORTANT limitation to judge
+  // it against: this only works while the app is open (a tab, or — on
+  // iOS specifically — opened from the Home Screen icon, not a Safari
+  // tab); there's no free background server to wake a fully-closed app.
+  const testNotifBtn = document.getElementById('testNotifBtn');
+  if (testNotifBtn && 'Notification' in window) {
+    testNotifBtn.addEventListener('click', async () => {
+      if (Notification.permission === 'denied') {
+        alert('الإشعارات محظورة من إعدادات المتصفح لهذا الموقع. لازم تسمح لها يدويًا من إعدادات المتصفح أولًا.');
+        return;
+      }
+      let permission = Notification.permission;
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      if (permission !== 'granted') {
+        alert('ما وافقت على الإشعارات. جرب الزر مرة ثانية ووافق من نافذة المتصفح.');
+        return;
+      }
+      new Notification('الفلسفة', {
+        body: 'تبدأ بعد 10 دقائق — 12 د 1',
+        icon: 'assets/icons/icon-192.png',
+      });
+    });
+  } else if (testNotifBtn) {
+    testNotifBtn.title = 'الإشعارات مو مدعومة بهذا المتصفح';
+    testNotifBtn.disabled = true;
+  }
+
   // Clears only the cached app files (service worker + Cache Storage) so a
   // fresh version can take over — never touches localStorage, so the
   // schedule/roster/attendance/report data stays exactly as it was.
