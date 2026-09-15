@@ -304,45 +304,168 @@
   const noteForm = document.getElementById('noteForm');
   const noteText = document.getElementById('noteText');
 
-  DAYS.forEach(day => {
-    const opt = document.createElement('option');
-    opt.value = day.key;
-    opt.textContent = day.label;
-    daySelect.appendChild(opt);
-  });
+  // ---------- Custom dropdown (replaces native <select>) ----------
+  // A plain <select>'s open option list is drawn entirely by the OS on
+  // mobile (Android in particular), and that native popup ignores the
+  // page's RTL direction for its own internal layout — the label ends up
+  // on the left and the radio indicator on the right, backwards from how
+  // Arabic reads, with no CSS able to reach inside and fix it. Building
+  // the list ourselves as plain DOM is the only way to actually control
+  // that layout. Turns a container element into a select-like widget:
+  // `.value` get/set, a real 'change' event, `.setEntries()` for explicit
+  // {value,label} pairs, and `.populate()` mirroring the old
+  // populateSelect() helper this replaces (fixed list + placeholder + an
+  // older free-text value preserved as an extra option).
+  function makeCustomSelect(id) {
+    const root = document.getElementById(id);
+    root.classList.add('custom-select');
+    root.innerHTML = '';
 
-  CLASS_PERIODS.forEach(period => {
-    const opt = document.createElement('option');
-    opt.value = period.key;
-    opt.textContent = `${period.label} (${formatRange(to12(period.start), to12(period.end))})`;
-    periodSelect.appendChild(opt);
-  });
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger';
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'custom-select-value';
+    const arrow = document.createElement('span');
+    arrow.className = 'custom-select-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    trigger.appendChild(valueSpan);
+    trigger.appendChild(arrow);
+    root.appendChild(trigger);
 
-  // Rebuilds a <select>'s options from a fixed list, plus a leading
-  // placeholder. If currentValue isn't in the fixed list (an older
-  // free-text entry from before this became a dropdown), it's injected as
-  // an extra option so editing that entry never silently loses its value.
-  // wrapBidi should only be true for values that mix digits with Arabic
-  // letters (room codes like "12 ع 4") — applying the LTR override to
-  // plain Arabic text (subject names) scrambles their letter order.
-  function populateSelect(selectEl, options, currentValue, placeholderLabel, placeholderDisabled, wrapBidi) {
-    selectEl.innerHTML = '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = placeholderLabel;
-    placeholder.disabled = !!placeholderDisabled;
-    selectEl.appendChild(placeholder);
+    const optionsList = document.createElement('div');
+    optionsList.className = 'custom-select-options';
+    optionsList.hidden = true;
+    root.appendChild(optionsList);
 
-    const values = [...options];
-    if (currentValue && !values.includes(currentValue)) values.unshift(currentValue);
-    values.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = wrapBidi ? isolateLTR(v) : v;
-      selectEl.appendChild(opt);
+    let entries = []; // [{ value, label, disabled }]
+    let internalValue = '';
+
+    function renderOptions() {
+      optionsList.innerHTML = '';
+      entries.forEach(entry => {
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.className = 'custom-select-option';
+        if (entry.disabled) opt.classList.add('placeholder-option');
+        if (entry.value === internalValue) opt.classList.add('active');
+        opt.disabled = !!entry.disabled;
+
+        const label = document.createElement('span');
+        label.className = 'custom-select-option-label';
+        label.textContent = entry.label;
+        const radio = document.createElement('span');
+        radio.className = 'custom-select-option-radio';
+        opt.appendChild(label);
+        opt.appendChild(radio);
+
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setValue(entry.value);
+          closeList();
+        });
+        optionsList.appendChild(opt);
+      });
+    }
+
+    function updateTriggerLabel() {
+      const entry = entries.find(e => e.value === internalValue);
+      valueSpan.textContent = entry ? entry.label : '';
+      valueSpan.classList.toggle('placeholder', !entry || !!entry.disabled);
+    }
+
+    function setValue(v, opts) {
+      internalValue = String(v);
+      updateTriggerLabel();
+      renderOptions();
+      if (!opts || !opts.silent) root.dispatchEvent(new Event('change'));
+    }
+
+    function closeList() {
+      optionsList.hidden = true;
+      root.classList.remove('open');
+    }
+    root._closeCustomSelect = closeList;
+
+    function openList() {
+      document.querySelectorAll('.custom-select.open').forEach(el => {
+        if (el !== root) el._closeCustomSelect();
+      });
+      // Positioned relative to the viewport (not the trigger) so the
+      // modal's own overflow:auto scrolling can never clip the popup —
+      // the room list alone can run past 20 options.
+      const rect = trigger.getBoundingClientRect();
+      optionsList.style.top = `${rect.bottom + 4}px`;
+      optionsList.style.left = `${rect.left}px`;
+      optionsList.style.width = `${rect.width}px`;
+      const available = window.innerHeight - rect.bottom - 16;
+      optionsList.style.maxHeight = `${Math.max(120, Math.min(260, available))}px`;
+      optionsList.hidden = false;
+      root.classList.add('open');
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (optionsList.hidden) openList(); else closeList();
     });
-    selectEl.value = currentValue || '';
+
+    Object.defineProperty(root, 'value', {
+      get() { return internalValue; },
+      set(v) { setValue(v, { silent: true }); },
+    });
+
+    // Generic {value,label} form — used for day/period, whose label text
+    // differs from the stored value.
+    root.setEntries = function (newEntries, currentValue) {
+      entries = newEntries;
+      internalValue = currentValue !== undefined && currentValue !== null
+        ? String(currentValue)
+        : (entries[0] ? entries[0].value : '');
+      updateTriggerLabel();
+      renderOptions();
+    };
+
+    // Mirrors the old populateSelect(): a flat list of values doubling as
+    // their own labels, plus a leading placeholder. wrapBidi should only
+    // be true for values mixing digits with Arabic letters (room codes
+    // like "12 ع 4") — applying the LTR override to plain Arabic text
+    // (subject names) scrambles their letter order.
+    root.populate = function (options, currentValue, placeholderLabel, placeholderDisabled, wrapBidi) {
+      const values = [...options];
+      if (currentValue && !values.includes(currentValue)) values.unshift(currentValue);
+      const optionEntries = values.map(v => ({ value: v, label: wrapBidi ? isolateLTR(v) : v, disabled: false }));
+      const placeholderEntry = { value: '', label: placeholderLabel, disabled: !!placeholderDisabled };
+      root.setEntries([placeholderEntry, ...optionEntries], currentValue || '');
+    };
+
+    return root;
   }
+
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.custom-select.open').forEach(el => {
+      if (!el.contains(e.target)) el._closeCustomSelect();
+    });
+  });
+  // A stale-positioned popup left open through a scroll/resize would no
+  // longer line up with its trigger — simplest correct fix is to close it,
+  // same as most native pickers do when the page moves under them.
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.custom-select.open').forEach(el => el._closeCustomSelect());
+  });
+  modal.addEventListener('scroll', () => {
+    document.querySelectorAll('.custom-select.open').forEach(el => el._closeCustomSelect());
+  }, true);
+
+  makeCustomSelect('subject');
+  makeCustomSelect('room');
+  makeCustomSelect('day');
+  makeCustomSelect('period');
+
+  daySelect.setEntries(DAYS.map(d => ({ value: String(d.key), label: d.label })));
+  periodSelect.setEntries(CLASS_PERIODS.map(p => ({
+    value: String(p.key),
+    label: `${p.label} (${formatRange(to12(p.start), to12(p.end))})`,
+  })));
 
   // Re-filters the room list whenever the subject changes, so only صفوف
   // valid for that subject are offered. Keeps the current room selected
@@ -350,7 +473,7 @@
   subjectSelect.addEventListener('change', () => {
     const validRooms = roomsForSubject(subjectSelect.value);
     const roomToKeep = validRooms.includes(roomSelect.value) ? roomSelect.value : '';
-    populateSelect(roomSelect, validRooms, roomToKeep, '— بدون —', false, true);
+    roomSelect.populate(validRooms, roomToKeep, '— بدون —', false, true);
   });
 
   function openModal() {
@@ -371,8 +494,8 @@
     notesSection.hidden = true;
     classForm.reset();
     document.getElementById('classId').value = '';
-    populateSelect(subjectSelect, SUBJECTS, '', 'اختر المادة', true);
-    populateSelect(roomSelect, roomsForSubject(''), '', '— بدون —', false, true);
+    subjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
+    roomSelect.populate(roomsForSubject(''), '', '— بدون —', false, true);
     daySelect.value = dayKey;
     periodSelect.value = periodKey;
     openModal();
@@ -401,8 +524,8 @@
     }
 
     document.getElementById('classId').value = c.id;
-    populateSelect(subjectSelect, SUBJECTS, c.subject, 'اختر المادة', true);
-    populateSelect(roomSelect, roomsForSubject(c.subject), c.room || '', '— بدون —', false, true);
+    subjectSelect.populate(SUBJECTS, c.subject, 'اختر المادة', true);
+    roomSelect.populate(roomsForSubject(c.subject), c.room || '', '— بدون —', false, true);
     daySelect.value = c.day;
     periodSelect.value = c.periodKey;
 
@@ -463,6 +586,14 @@
     const room = roomSelect.value.trim();
     const day = Number(daySelect.value);
     const periodKey = isNaN(Number(periodSelect.value)) ? periodSelect.value : Number(periodSelect.value);
+
+    // The subject dropdown used to be a native <select required>, which
+    // blocked submission on its own — now that it's a plain div, this
+    // replaces that check explicitly.
+    if (!subject) {
+      alert('اختر المادة أولًا.');
+      return;
+    }
 
     const conflict = findClass(day, periodKey);
     if (conflict && conflict.id !== editingId) {

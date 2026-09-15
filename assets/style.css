@@ -275,15 +275,15 @@ main {
   color: var(--text-muted);
 }
 
-#classForm label {
+#classForm label,
+#classForm .form-field {
   display: block;
   font-size: 0.82rem;
   color: var(--text-muted);
   margin-top: 10px;
 }
 
-#classForm input[type="text"],
-#classForm select {
+#classForm input[type="text"] {
   width: 100%;
   margin-top: 4px;
   padding: 8px 10px;
@@ -295,30 +295,116 @@ main {
   font-family: inherit;
 }
 
-/* A plain <select> defaults to its dropdown arrow on the right in some
-   browsers/OSes even on an RTL page — with Arabic option text that reads
-   right-to-left, the arrow visually belongs on the left (where the eye
-   naturally ends up), so this forces RTL layout and draws a custom arrow
-   there instead of trusting native per-platform chrome to get it right. */
-#classForm select {
-  padding-left: 30px;
-  direction: rtl;
+/* Custom dropdown (replaces native <select> in the class form) — a plain
+   <select>'s open option list is native OS chrome on mobile and ignores
+   the page's RTL direction internally (label on the left, radio on the
+   right), which no CSS can reach into and fix. This draws the whole
+   popup as ordinary DOM instead, fully under our control. */
+.custom-select {
+  position: relative;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
   text-align: right;
-  text-align-last: right;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+}
+
+.custom-select-value.placeholder {
+  color: var(--text-muted);
+}
+
+.custom-select-arrow {
+  flex-shrink: 0;
+  width: 10px;
+  height: 6px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: left 10px center;
   background-size: 10px 6px;
+  transition: transform 0.15s;
+}
+.custom-select.open .custom-select-arrow {
+  transform: rotate(180deg);
+}
+
+.custom-select-options {
+  position: fixed;
+  z-index: 200;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: var(--text);
+  text-align: right;
+  cursor: pointer;
+}
+.custom-select-option:hover { background: var(--bg); }
+.custom-select-option.active {
+  background: #eef1fb;
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+.custom-select-option.placeholder-option {
+  color: var(--text-muted);
+}
+.custom-select-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.custom-select-option-radio {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  position: relative;
+}
+.custom-select-option.active .custom-select-option-radio {
+  border-color: var(--primary);
+}
+.custom-select-option.active .custom-select-option-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--primary);
 }
 
 .row {
   display: flex;
   gap: 12px;
 }
-.row > label { flex: 1; }
+.row > label, .row > .form-field { flex: 1; }
 
 .modal-footer {
   display: flex;
@@ -334,6 +420,9 @@ main {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+.quick-links[hidden] {
+  display: none;
 }
 
 .notes-section {
