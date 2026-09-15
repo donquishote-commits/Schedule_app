@@ -13,24 +13,29 @@
 <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="جدولي">
+<meta name="apple-mobile-web-app-title" content="دفتري">
 </head>
 <body>
 
 <header class="topbar">
-  <h1>جدولي</h1>
+  <h1>دفتري</h1>
   <div class="topbar-actions">
     <a href="students.html" class="btn btn-ghost">قوائم الفصول</a>
     <a href="attendance.html" class="btn btn-ghost">المتابعة اليومية</a>
     <a href="reports.html" class="btn btn-ghost">التقارير</a>
     <button id="addClassBtn" class="btn btn-primary">+ إضافة حصة</button>
-    <button id="exportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية من الجدول">تصدير</button>
-    <button id="importBtn" class="btn btn-ghost" title="استعادة الجدول من نسخة احتياطية">استيراد</button>
-    <button id="exportCalendarBtn" class="btn btn-ghost" title="تنزيل ملف تقويم لاستيراده في Google Calendar">تصدير إلى Google Calendar</button>
-    <button id="fullBackupExportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية شاملة: الجدول، الفصول، الحضور، والتقارير">💾 نسخة احتياطية شاملة</button>
-    <button id="fullBackupImportBtn" class="btn btn-ghost" title="استعادة كل البيانات من نسخة احتياطية شاملة">استعادة نسخة شاملة</button>
-    <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
-    <button id="testNotifBtn" class="btn btn-ghost" title="جرّب شكل التنبيه قبل أن نقرر تفعيله تلقائيًا">🔔 تجربة تنبيه</button>
+    <div class="menu-wrap">
+      <button type="button" id="moreMenuBtn" class="btn btn-ghost icon-btn-round" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-haspopup="true">⚙️</button>
+      <div id="moreMenu" class="dropdown-menu" hidden>
+        <button id="exportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية من الجدول">تصدير</button>
+        <button id="importBtn" class="btn btn-ghost" title="استعادة الجدول من نسخة احتياطية">استيراد</button>
+        <button id="exportCalendarBtn" class="btn btn-ghost" title="تنزيل ملف تقويم لاستيراده في Google Calendar">تصدير إلى Google Calendar</button>
+        <button id="fullBackupExportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية شاملة: الجدول، الفصول، الحضور، والتقارير">💾 نسخة احتياطية شاملة</button>
+        <button id="fullBackupImportBtn" class="btn btn-ghost" title="استعادة كل البيانات من نسخة احتياطية شاملة">استعادة نسخة شاملة</button>
+        <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
+        <button id="testNotifBtn" class="btn btn-ghost" title="جرّب شكل التنبيه قبل أن نقرر تفعيله تلقائيًا">🔔 تجربة تنبيه</button>
+      </div>
+    </div>
     <input type="file" id="importFile" accept="application/json" hidden>
     <input type="file" id="fullBackupImportFile" accept="application/json" hidden>
   </div>

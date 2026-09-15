@@ -51,6 +51,38 @@ body {
   display: none;
 }
 
+.menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.dropdown-menu {
+  /* fixed, not absolute: the topbar wraps onto several lines depending on
+     screen width, so the gear button can land anywhere in the row —
+     top/left are computed in JS at open time and clamped to the
+     viewport, rather than assumed from a fixed corner here. */
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 240px;
+  max-width: 80vw;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+}
+.dropdown-menu[hidden] {
+  display: none;
+}
+.dropdown-menu .btn {
+  width: 100%;
+  text-align: right;
+  justify-content: flex-start;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

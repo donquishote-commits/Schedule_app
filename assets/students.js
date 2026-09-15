@@ -714,6 +714,43 @@
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   })();
 
+  // ---------- More-options menu ----------
+  // The rarely-used utility buttons (import/backup/restore, force update)
+  // used to crowd the topbar as individual buttons — collapsed here
+  // behind one gear icon instead.
+  const moreMenuBtn = document.getElementById('moreMenuBtn');
+  const moreMenu = document.getElementById('moreMenu');
+  if (moreMenuBtn && moreMenu) {
+    // The topbar wraps onto several lines depending on screen width, so
+    // the gear button can land anywhere in the row — position is computed
+    // here and clamped to the viewport instead of assumed from a fixed
+    // corner in CSS.
+    function openMoreMenu() {
+      const btnRect = moreMenuBtn.getBoundingClientRect();
+      moreMenu.style.top = `${btnRect.bottom + 6}px`;
+      moreMenu.style.left = `${btnRect.right}px`;
+      moreMenu.hidden = false;
+      const menuWidth = moreMenu.offsetWidth;
+      const maxLeft = window.innerWidth - 8 - menuWidth;
+      const left = Math.max(8, Math.min(btnRect.right - menuWidth, maxLeft));
+      moreMenu.style.left = `${left}px`;
+    }
+    moreMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (moreMenu.hidden) openMoreMenu();
+      else moreMenu.hidden = true;
+    });
+    moreMenu.addEventListener('click', (e) => {
+      if (e.target.closest('button')) moreMenu.hidden = true;
+    });
+    document.addEventListener('click', (e) => {
+      if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreMenuBtn) {
+        moreMenu.hidden = true;
+      }
+    });
+    window.addEventListener('resize', () => { moreMenu.hidden = true; });
+  }
+
   // Clears only the cached app files (service worker + Cache Storage) so a
   // fresh version can take over — never touches localStorage, so the
   // schedule/roster/attendance/report data stays exactly as it was.

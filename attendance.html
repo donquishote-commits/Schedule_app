@@ -13,17 +13,22 @@
 <link rel="apple-touch-icon" href="assets/icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="جدولي">
+<meta name="apple-mobile-web-app-title" content="دفتري">
 </head>
 <body>
 
 <header class="topbar">
   <h1>المتابعة اليومية</h1>
   <div class="topbar-actions">
-    <a href="index.html" class="btn btn-ghost">جدولي</a>
+    <a href="index.html" class="btn btn-ghost">دفتري</a>
     <a href="students.html" class="btn btn-ghost">قوائم الفصول</a>
     <a href="reports.html" class="btn btn-ghost">التقارير</a>
-    <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
+    <div class="menu-wrap">
+      <button type="button" id="moreMenuBtn" class="btn btn-ghost icon-btn-round" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-haspopup="true">⚙️</button>
+      <div id="moreMenu" class="dropdown-menu" hidden>
+        <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
+      </div>
+    </div>
   </div>
 </header>
 
