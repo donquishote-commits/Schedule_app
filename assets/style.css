@@ -291,8 +291,27 @@ main {
   border-radius: 6px;
   font-size: 0.95rem;
   color: var(--text);
-  background: var(--surface);
+  background-color: var(--surface);
   font-family: inherit;
+}
+
+/* A plain <select> defaults to its dropdown arrow on the right in some
+   browsers/OSes even on an RTL page — with Arabic option text that reads
+   right-to-left, the arrow visually belongs on the left (where the eye
+   naturally ends up), so this forces RTL layout and draws a custom arrow
+   there instead of trusting native per-platform chrome to get it right. */
+#classForm select {
+  padding-left: 30px;
+  direction: rtl;
+  text-align: right;
+  text-align-last: right;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 10px center;
+  background-size: 10px 6px;
 }
 
 .row {
@@ -308,6 +327,14 @@ main {
   margin-top: 18px;
 }
 .spacer { flex: 1; }
+
+.quick-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
 
 .notes-section {
   margin-top: 20px;

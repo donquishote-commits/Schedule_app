@@ -345,6 +345,7 @@
     const students = classes[className] || [];
     const card = document.createElement('div');
     card.className = 'class-card';
+    card.dataset.className = className;
     if (openClasses.has(className)) card.classList.add('open');
 
     const header = document.createElement('div');
@@ -700,6 +701,18 @@
 
   // ---------- Init ----------
   render();
+
+  // Deep link from the schedule page's "📋 قائمة الفصل" quick-link — opens
+  // straight to that class's roster instead of leaving the teacher to
+  // scroll and find it manually.
+  (() => {
+    const deepLinkClass = new URLSearchParams(location.search).get('class');
+    if (!deepLinkClass || !classes[deepLinkClass]) return;
+    openClasses.add(deepLinkClass);
+    render();
+    const card = Array.from(container.querySelectorAll('.class-card')).find(el => el.dataset.className === deepLinkClass);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  })();
 
   // Clears only the cached app files (service worker + Cache Storage) so a
   // fresh version can take over — never touches localStorage, so the

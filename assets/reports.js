@@ -363,6 +363,7 @@
   function renderClassReport(className) {
     const wrap = document.createElement('div');
     wrap.className = 'class-card report-card';
+    wrap.dataset.className = className;
     if (openClasses.has(className)) wrap.classList.add('open');
 
     const header = document.createElement('div');
@@ -694,6 +695,18 @@
   // ---------- Init ----------
   render();
   renderOverview();
+
+  // Deep link from the schedule page's "📊 تقرير الفصل" quick-link — opens
+  // straight to that class's report instead of leaving the teacher to
+  // scroll and find it manually.
+  (() => {
+    const deepLinkClass = new URLSearchParams(location.search).get('class');
+    if (!deepLinkClass || !students[deepLinkClass]) return;
+    openClasses.add(deepLinkClass);
+    render();
+    const card = Array.from(container.querySelectorAll('.report-card')).find(el => el.dataset.className === deepLinkClass);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  })();
 
   document.getElementById('exportAllExcelBtn').addEventListener('click', exportAllClassesExcel);
   document.getElementById('newTermBtn').addEventListener('click', startNewTerm);

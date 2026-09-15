@@ -296,6 +296,9 @@
   const subjectSelect = document.getElementById('subject');
   const roomSelect = document.getElementById('room');
   const deleteBtn = document.getElementById('deleteBtn');
+  const quickLinks = document.getElementById('quickLinks');
+  const quickLinkStudents = document.getElementById('quickLinkStudents');
+  const quickLinkReports = document.getElementById('quickLinkReports');
   const notesSection = document.getElementById('notesSection');
   const notesList = document.getElementById('notesList');
   const noteForm = document.getElementById('noteForm');
@@ -364,6 +367,7 @@
     editingId = null;
     modalTitle.textContent = 'إضافة حصة';
     deleteBtn.hidden = true;
+    quickLinks.hidden = true;
     notesSection.hidden = true;
     classForm.reset();
     document.getElementById('classId').value = '';
@@ -381,6 +385,20 @@
     modalTitle.textContent = 'تعديل الحصة';
     deleteBtn.hidden = false;
     notesSection.hidden = false;
+
+    // Roster/report pages key everything off this exact room string, but
+    // that link is invisible in the UI otherwise — these jump straight to
+    // this class's roster/report instead of making the teacher navigate
+    // and find it manually. Only meaningful once a room is actually set.
+    const room = (c.room || '').trim();
+    if (room) {
+      quickLinks.hidden = false;
+      const encoded = encodeURIComponent(room);
+      quickLinkStudents.href = `students.html?class=${encoded}`;
+      quickLinkReports.href = `reports.html?class=${encoded}`;
+    } else {
+      quickLinks.hidden = true;
+    }
 
     document.getElementById('classId').value = c.id;
     populateSelect(subjectSelect, SUBJECTS, c.subject, 'اختر المادة', true);
