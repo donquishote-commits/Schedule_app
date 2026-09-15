@@ -82,16 +82,21 @@
   // back to a hash-derived hue so it's still consistent, just not
   // guaranteed distinct from this fixed palette.
   const SUBJECT_HUES = [15, 95, 155, 215, 265];
-  const SUBJECT_COLORS = Object.fromEntries(
-    SUBJECTS.map((s, i) => [s, hslToHex(SUBJECT_HUES[i], 42, 82)])
+  const SUBJECT_HUE_MAP = Object.fromEntries(
+    SUBJECTS.map((s, i) => [s, SUBJECT_HUES[i]])
   );
 
-  function colorForSubject(subject) {
+  // Chalk-on-paper style: a soft tinted fill, a dashed border in a deeper
+  // shade of the same hue, and matching text — instead of one flat pastel.
+  function colorsForSubject(subject) {
     const key = (subject || '').trim();
-    if (!key) return DEFAULT_COLOR;
-    if (SUBJECT_COLORS[key]) return SUBJECT_COLORS[key];
-    const hue = hashString(key) % 360;
-    return hslToHex(hue, 42, 82); // moderate saturation, high lightness — calm, not gaudy
+    if (!key) return { bg: DEFAULT_COLOR, border: '#9aa0af', text: 'var(--text)' };
+    const hue = key in SUBJECT_HUE_MAP ? SUBJECT_HUE_MAP[key] : hashString(key) % 360;
+    return {
+      bg: hslToHex(hue, 38, 91),
+      border: hslToHex(hue, 45, 55),
+      text: hslToHex(hue, 48, 28),
+    };
   }
 
   // Converts a 24-hour "HH:MM" period time to the informal 12-hour form
@@ -260,7 +265,10 @@
     // Always computed live from the subject, never read from storage —
     // so retuning the palette or fixing an old entry's subject instantly
     // shows the right color everywhere, with nothing to go stale.
-    block.style.background = colorForSubject(c.subject);
+    const colors = colorsForSubject(c.subject);
+    block.style.background = colors.bg;
+    block.style.borderColor = colors.border;
+    block.style.color = colors.text;
 
     const subject = document.createElement('span');
     subject.className = 'subject';

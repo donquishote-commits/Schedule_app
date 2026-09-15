@@ -1,15 +1,34 @@
 :root {
-  --bg: #f6f7fb;
-  --surface: #ffffff;
-  --border: #e2e5ec;
-  --text: #1f2430;
-  --text-muted: #6b7280;
-  --primary: #5b7fdb;
-  --primary-dark: #4763b8;
-  --danger: #d9534f;
-  --break-bg: #fdf6e3;
-  --break-text: #9a7b1f;
-  --radius: 10px;
+  --bg: #f6efdf;
+  --surface: #fbf6ea;
+  --border: #ddd0ab;
+  --text: #362a1c;
+  --text-muted: #7d6a4f;
+  --primary: #2f4d3a;
+  --primary-dark: #22392a;
+  --danger: #a8432f;
+  --break-bg: #efe3c4;
+  --break-text: #8a5f1f;
+  --radius: 6px;
+  --font-display: "Reem Kufi", Tahoma, "Segoe UI", "Noto Sans Arabic", Arial, sans-serif;
+}
+
+@font-face {
+  font-family: "Reem Kufi";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/reem-kufi-700-arabic.woff2") format("woff2");
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: "Reem Kufi";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/reem-kufi-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2000-206F;
 }
 
 * { box-sizing: border-box; }
@@ -20,6 +39,10 @@ body {
   font-family: Tahoma, "Segoe UI", "Noto Sans Arabic", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
 }
 
 .topbar {
@@ -217,6 +240,7 @@ main {
   height: 100%;
   min-height: 54px;
   border-radius: 6px;
+  border: 1.5px dashed;
   padding: 6px 8px;
   color: var(--text);
   font-size: 0.8rem;
@@ -224,7 +248,6 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.12);
 }
 
 .class-block .subject {
@@ -401,7 +424,7 @@ main {
 }
 .custom-select-option:hover { background: var(--bg); }
 .custom-select-option.active {
-  background: #eef1fb;
+  background: #e4ead9;
   color: var(--primary-dark);
   font-weight: 600;
 }
@@ -842,7 +865,7 @@ main {
 .attendance-table th,
 .attendance-table td {
   padding: 8px;
-  border-left: 1px solid #c3c9d6;
+  border-left: 1px solid #ddd0ab;
   white-space: nowrap;
 }
 .attendance-table th:last-child,
@@ -899,7 +922,7 @@ main {
   color: #a06c0f;
 }
 .pill-btn.active-participation {
-  background: #eef1fb;
+  background: #e4ead9;
   border-color: var(--primary);
   color: var(--primary-dark);
 }
@@ -1292,7 +1315,7 @@ main {
    anchor while the tracked columns scroll past it. */
 .report-table th,
 .report-table td {
-  border-left: 1px solid #c3c9d6;
+  border-left: 1px solid #ddd0ab;
 }
 .report-table th:last-child,
 .report-table td:last-child {

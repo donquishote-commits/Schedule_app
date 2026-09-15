@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedule-app-v59';
+const CACHE_NAME = 'schedule-app-v60';
 const ASSETS = [
   './',
   './index.html',
@@ -15,6 +15,8 @@ const ASSETS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-180.png',
+  './assets/fonts/reem-kufi-700-arabic.woff2',
+  './assets/fonts/reem-kufi-700-latin.woff2',
 ];
 
 // cache.addAll() is all-or-nothing: if even one asset fails to fetch
