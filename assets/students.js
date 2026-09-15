@@ -368,8 +368,10 @@
 
     const renameBtn = document.createElement('button');
     renameBtn.type = 'button';
-    renameBtn.className = 'btn btn-ghost btn-small';
-    renameBtn.textContent = '✏️ إعادة تسمية';
+    renameBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+    renameBtn.textContent = '✏️';
+    renameBtn.title = 'إعادة تسمية الفصل';
+    renameBtn.setAttribute('aria-label', 'إعادة تسمية الفصل');
     renameBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const input = prompt('الاسم الجديد للفصل:', className);
