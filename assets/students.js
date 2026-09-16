@@ -558,10 +558,20 @@
     modal.hidden = true;
   }
 
+  // Used by the "discard" paths (X, cancel, backdrop click) — checks for
+  // an unsaved name before throwing it away. The submit handler below
+  // calls closeModal() directly since its change is already committed.
+  function closeModalIfConfirmed() {
+    if (classNameInput.value.trim()) {
+      if (!confirm('لديك اسم فصل لم تحفظه بعد. إذا أغلقت الآن، ستُفقد هذه التعديلات. هل تريد المتابعة؟')) return;
+    }
+    closeModal();
+  }
+
   document.getElementById('addClassBtn').addEventListener('click', openModal);
-  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.getElementById('closeModalBtn').addEventListener('click', closeModalIfConfirmed);
+  document.getElementById('cancelBtn').addEventListener('click', closeModalIfConfirmed);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModalIfConfirmed(); });
 
   classForm.addEventListener('submit', (e) => {
     e.preventDefault();

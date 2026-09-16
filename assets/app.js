@@ -498,14 +498,31 @@
     roomSelect.populate(validRooms, roomToKeep, '— غير معيّن —', false, true);
   });
 
+  let openedSnapshot = '';
+  function formSnapshot() {
+    return [subjectSelect.value, roomSelect.value, daySelect.value, periodSelect.value].join('|');
+  }
+
   function openModal() {
     modal.hidden = false;
+    openedSnapshot = formSnapshot();
   }
 
   function closeModal() {
     modal.hidden = true;
     classForm.reset();
     editingId = null;
+  }
+
+  // Used by the "discard" paths (X, cancel, backdrop click) — unlike a
+  // successful save or delete, these throw away whatever's in the form,
+  // so they check for unsaved edits first. Submit/delete call closeModal()
+  // directly since their change is already committed.
+  function closeModalIfConfirmed() {
+    if (formSnapshot() !== openedSnapshot) {
+      if (!confirm('لديك تعديلات على الحصة لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه التعديلات. هل تريد المتابعة؟')) return;
+    }
+    closeModal();
   }
 
   function openAddModal(dayKey, periodKey) {
@@ -596,10 +613,10 @@
   document.getElementById('addClassBtn').addEventListener('click', () => {
     openAddModal(DAYS[0].key, CLASS_PERIODS[0].key);
   });
-  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  document.getElementById('closeModalBtn').addEventListener('click', closeModalIfConfirmed);
+  document.getElementById('cancelBtn').addEventListener('click', closeModalIfConfirmed);
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+    if (e.target === modal) closeModalIfConfirmed();
   });
 
   classForm.addEventListener('submit', (e) => {

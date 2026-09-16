@@ -633,6 +633,7 @@
       removeBtn.innerHTML = '&times;';
       removeBtn.title = 'حذف هذه العبارة من القائمة';
       removeBtn.addEventListener('click', () => {
+        if (!confirm(`حذف العبارة "${phrase}" من قائمة العبارات الجاهزة؟`)) return;
         cannedPhrases[activeNote.field].splice(index, 1);
         savePhrases();
         renderPhraseChips();
@@ -661,9 +662,10 @@
   });
 
   function openNoteModal(className, studentName, field, label, btn) {
-    activeNote = { className, studentName, field, btn };
+    const originalValue = getReportEntry(className, studentName)[field] || '';
+    activeNote = { className, studentName, field, btn, originalValue };
     noteModalTitle.textContent = `${label} — ${studentName}`;
-    noteModalTextarea.value = getReportEntry(className, studentName)[field] || '';
+    noteModalTextarea.value = originalValue;
     newPhraseInput.value = '';
     renderPhraseChips();
     noteModal.hidden = false;
@@ -671,6 +673,9 @@
   }
 
   function closeNoteModal() {
+    if (activeNote && noteModalTextarea.value !== activeNote.originalValue) {
+      if (!confirm('لديك تعديلات على الملاحظة لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه التعديلات. هل تريد المتابعة؟')) return;
+    }
     noteModal.hidden = true;
     activeNote = null;
   }
