@@ -167,6 +167,20 @@ main {
   padding: 16px;
 }
 
+.week-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.week-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .schedule-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -193,6 +207,14 @@ main {
   background: var(--surface);
   position: sticky;
   top: 0;
+}
+
+.day-date {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .period-col-header {

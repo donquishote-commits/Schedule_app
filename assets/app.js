@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'schedule_app_classes_ar_v1';
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
+  const TERMS_KEY = 'schedule_app_terms_v1';
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -139,6 +140,13 @@
   // ---------- State ----------
   let classes = loadClasses();
   let editingId = null;
+  // Which week's Sunday the grid is currently showing — always resets to
+  // the real current week on every fresh page load/open, same as صفحة
+  // المتابعة اليومية always opening on today; navigated away from with
+  // the week-nav buttons only for the current session. (startOfWeek/
+  // todayISO are function declarations further down, hoisted, so calling
+  // them here at module init time is safe.)
+  let viewedWeekStart = startOfWeek(todayISO());
 
   // ---------- Persistence ----------
   function loadClasses() {
@@ -179,6 +187,19 @@
   }
   const tempSessions = loadTempSessions();
 
+  // Read-only here too — term dates are set from صفحة المتابعة اليومية,
+  // this page just uses them to number the weeks (see weekLabelFor).
+  function loadTerms() {
+    try {
+      const raw = localStorage.getItem(TERMS_KEY);
+      return raw ? JSON.parse(raw) : { term1Start: '', term1End: '', term2Start: '', term2End: '' };
+    } catch (e) {
+      console.error('Failed to load term dates from storage', e);
+      return { term1Start: '', term1End: '', term2Start: '', term2End: '' };
+    }
+  }
+  const terms = loadTerms();
+
   function dateToISO(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
@@ -192,6 +213,21 @@
     return new Date(y, m - 1, d);
   }
 
+  function addDays(iso, delta) {
+    const d = isoToDate(iso);
+    d.setDate(d.getDate() + delta);
+    return dateToISO(d);
+  }
+
+  // The Sunday (0 = Sunday) of the week containing this date — every
+  // viewed week is anchored to start on Sunday, matching the grid's own
+  // column order, regardless of which weekday a term's start date falls on.
+  function startOfWeek(iso) {
+    const d = isoToDate(iso);
+    d.setDate(d.getDate() - d.getDay());
+    return dateToISO(d);
+  }
+
   // No weekday name here — the grid cell's own column already shows
   // that; this only needs to disambiguate which occurrence of it.
   const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -200,37 +236,65 @@
     return `${d.getDate()} ${ARABIC_MONTHS[d.getMonth()]}`;
   }
 
-  // The nearest upcoming (today or later) temp session for this exact
-  // weekday × period — if more than one exists, only the soonest shows;
-  // the rest surface once their turn comes.
-  function nearestUpcomingTempSession(dayKey, periodKey) {
-    const today = todayISO();
-    let best = null;
-    tempSessions.forEach(t => {
-      if (t.periodKey !== periodKey) return;
-      if (t.date < today) return;
-      if (isoToDate(t.date).getDay() !== dayKey) return;
-      if (!best || t.date < best.date) best = t;
-    });
-    return best;
+  // Ordinal week words, matching the app's existing convention of
+  // spelling out ordinals (see PERIODS' "الحصة الأولى/الثانية/..." above)
+  // instead of digits — generous enough for any real school term; a term
+  // improbably longer than this just falls back to a plain number.
+  const ORDINAL_WEEKS = [
+    '', 'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر',
+    'الحادي عشر', 'الثاني عشر', 'الثالث عشر', 'الرابع عشر', 'الخامس عشر',
+    'السادس عشر', 'السابع عشر', 'الثامن عشر', 'التاسع عشر', 'العشرون',
+  ];
+  function ordinalWeekWord(n) {
+    return (n >= 1 && n < ORDINAL_WEEKS.length) ? ORDINAL_WEEKS[n] : String(n);
   }
 
-  // True if THIS week's upcoming occurrence of this recurring class has
-  // been swapped away to another date — so the grid doesn't show it both
-  // in its normal cell and in the swap's target cell at the same time.
-  // Only covers the nearest occurrence (today or later); a swap made for
-  // a date further out than that isn't reflected here, same limitation as
-  // nearestUpcomingTempSession only ever surfacing the soonest match.
-  function isNextOccurrenceSwappedAway(classId, dayKey) {
-    const nextDate = dateToISO(nextDateForWeekday(dayKey));
-    return tempSessions.some(t => t.type === 'swap' && t.sourceClassId === classId && t.sourceDate === nextDate);
+  // Labels the viewed week by its number within whichever فصل دراسي it
+  // falls in — matching how the الخطة الدراسية itself counts weeks
+  // ("الأسبوع الأول/الثاني/...") — since that's what actually tells a
+  // teacher when in the term a given تغطية/تبديل happened. Falls back to
+  // a plain date range for a week outside any configured term (or before
+  // term dates are set up at all, from صفحة المتابعة اليومية ← ⚙️).
+  function weekLabelFor(weekStartISO) {
+    if (terms.term1Start) {
+      const t1Start = startOfWeek(terms.term1Start);
+      if (weekStartISO >= t1Start && (!terms.term1End || weekStartISO <= terms.term1End)) {
+        const n = Math.round((isoToDate(weekStartISO) - isoToDate(t1Start)) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        return `الفصل الأول — الأسبوع ${ordinalWeekWord(n)}`;
+      }
+    }
+    if (terms.term2Start) {
+      const t2Start = startOfWeek(terms.term2Start);
+      if (weekStartISO >= t2Start && (!terms.term2End || weekStartISO <= terms.term2End)) {
+        const n = Math.round((isoToDate(weekStartISO) - isoToDate(t2Start)) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        return `الفصل الثاني — الأسبوع ${ordinalWeekWord(n)}`;
+      }
+    }
+    return `${formatArabicDateShort(weekStartISO)} – ${formatArabicDateShort(addDays(weekStartISO, 4))}`;
+  }
+
+  // Exact date + period match — the grid now shows one real calendar date
+  // per cell (based on the currently viewed week), so this no longer
+  // needs the old "nearest upcoming" heuristic: a swap/cover only ever
+  // shows once its own week is the one being viewed.
+  function tempSessionForDate(dateISO, periodKey) {
+    return tempSessions.find(t => t.periodKey === periodKey && t.date === dateISO) || null;
+  }
+
+  // True if the recurring class's occurrence on this exact date has been
+  // swapped away to another date — so the grid doesn't show it both in
+  // its normal cell and in the swap's target cell at the same time.
+  function isClassSwappedAwayOnDate(classId, dateISO) {
+    return tempSessions.some(t => t.type === 'swap' && t.sourceClassId === classId && t.sourceDate === dateISO);
   }
 
   // ---------- Grid rendering ----------
   const gridEl = document.getElementById('grid');
+  const weekLabelEl = document.getElementById('weekLabel');
 
   function renderGrid() {
     gridEl.innerHTML = '';
+    if (weekLabelEl) weekLabelEl.textContent = weekLabelFor(viewedWeekStart);
 
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
@@ -242,7 +306,13 @@
 
     DAYS.forEach(day => {
       const th = document.createElement('th');
-      th.textContent = day.label;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = day.label;
+      const dateSpan = document.createElement('span');
+      dateSpan.className = 'day-date';
+      dateSpan.textContent = formatArabicDateShort(addDays(viewedWeekStart, day.key));
+      th.appendChild(nameSpan);
+      th.appendChild(dateSpan);
       headRow.appendChild(th);
     });
 
@@ -286,13 +356,14 @@
       DAYS.forEach(day => {
         const td = document.createElement('td');
         td.className = 'class-cell';
-        const tempMatch = nearestUpcomingTempSession(day.key, period.key);
+        const cellDate = addDays(viewedWeekStart, day.key);
+        const tempMatch = tempSessionForDate(cellDate, period.key);
         const existing = findClass(day.key, period.key);
 
         if (tempMatch) {
           td.appendChild(renderTempBlock(tempMatch));
         } else if (existing) {
-          const swappedAway = isNextOccurrenceSwappedAway(existing.id, day.key);
+          const swappedAway = isClassSwappedAwayOnDate(existing.id, cellDate);
           td.appendChild(renderClassBlock(existing, { swappedAway }));
         } else {
           td.addEventListener('click', () => openAddModal(day.key, period.key));
@@ -326,6 +397,18 @@
     window.addEventListener('resize', centerBreakLabels);
   }
 
+  // ---------- Week navigation ----------
+  const prevWeekBtn = document.getElementById('prevWeekBtn');
+  const nextWeekBtn = document.getElementById('nextWeekBtn');
+  const thisWeekBtn = document.getElementById('thisWeekBtn');
+  function goToWeek(newWeekStart) {
+    viewedWeekStart = newWeekStart;
+    renderGrid();
+  }
+  if (prevWeekBtn) prevWeekBtn.addEventListener('click', () => goToWeek(addDays(viewedWeekStart, -7)));
+  if (nextWeekBtn) nextWeekBtn.addEventListener('click', () => goToWeek(addDays(viewedWeekStart, 7)));
+  if (thisWeekBtn) thisWeekBtn.addEventListener('click', () => goToWeek(startOfWeek(todayISO())));
+
   // Builds the subject line as an icon span + text span (a flex row),
   // instead of one string with the icon typed inline — mixing a symbol
   // like ➕ into the same Arabic text run left its on-screen position up
@@ -358,7 +441,7 @@
     block.className = 'class-block';
     if (swappedAway) {
       block.classList.add('class-block-swapped-away');
-      block.title = 'حصتك القادمة بُدِّلت لتاريخ آخر هذا الأسبوع — لا تزال جزءًا من جدولك الثابت وترجع تلقائيًا الأسبوع القادم.';
+      block.title = 'حصتك بهذا الأسبوع بُدِّلت لتاريخ آخر — لا تزال جزءًا من جدولك الثابت، وتبين طبيعية في أي أسبوع ما فيه تبديل عليها.';
     }
     // Always computed live from the subject, never read from storage —
     // so retuning the palette or fixing an old entry's subject instantly
