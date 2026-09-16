@@ -435,6 +435,7 @@
         </svg>`;
       sortBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (!confirm(`ترتيب أسماء طلاب "${isolateLTR(className)}" أبجديًا؟ سيتغيّر ترتيبهم الحالي.`)) return;
         classes[className].sort((a, b) => a.localeCompare(b, 'ar'));
         saveClasses();
         render();
