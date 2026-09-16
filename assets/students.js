@@ -759,11 +759,17 @@
     moreMenu.addEventListener('click', (e) => {
       if (e.target.closest('button')) moreMenu.hidden = true;
     });
+    // Capture phase + stop/prevent so a click outside the menu ONLY closes
+    // it — without this, the click still reaches (and activates) whatever
+    // page element sits underneath, since bubble-phase listeners fire
+    // after the target's own handlers already ran.
     document.addEventListener('click', (e) => {
-      if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreMenuBtn) {
+      if (e.isTrusted && !moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreMenuBtn) {
         moreMenu.hidden = true;
+        e.stopPropagation();
+        e.preventDefault();
       }
-    });
+    }, true);
     window.addEventListener('resize', () => { moreMenu.hidden = true; });
   }
 
