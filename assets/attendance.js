@@ -469,15 +469,6 @@
       thead.appendChild(headRow);
       table.appendChild(thead);
 
-      const tbody = document.createElement('tbody');
-      roster.forEach(studentName => {
-        tbody.appendChild(renderStudentRow(session.id, studentName, draft, () => setSessionDirty(true)));
-      });
-      table.appendChild(tbody);
-
-      scrollWrap.appendChild(table);
-      body.appendChild(scrollWrap);
-
       // Nothing above is written to storage until this is pressed — every
       // click just edited the in-memory draft, so a stray tap while
       // scrolling never silently records the wrong status.
@@ -489,32 +480,50 @@
       const saveStatus = document.createElement('span');
       saveStatus.className = 'attendance-save-status';
 
+      // "dirty" is purely the visual reminder that this session hasn't
+      // been fully saved yet (shown on every render, even one where the
+      // teacher hasn't touched anything) — it must NOT feed dirtySessions,
+      // or just opening a fresh day would falsely warn about "unsaved
+      // edits" on leaving it. dirtySessions only gets a session added via
+      // markEdited() below, which fires from an actual pill click.
       let dirty = !isSessionSaved(dateISO, session.id, roster);
       function setSessionDirty(value) {
         dirty = value;
         updateSaveUI();
       }
       function updateSaveUI() {
-        const dmKey = draftMapKey(dateISO, session.id);
         if (dirty) {
           saveBtn.textContent = '💾 حفظ الغياب';
           saveBtn.disabled = false;
           saveStatus.textContent = 'لم يُحفظ بعد';
           saveStatus.className = 'attendance-save-status unsaved';
-          dirtySessions.add(dmKey);
         } else {
           saveBtn.textContent = '✓ تم الحفظ';
           saveBtn.disabled = true;
           saveStatus.textContent = '';
           saveStatus.className = 'attendance-save-status';
-          dirtySessions.delete(dmKey);
         }
       }
       updateSaveUI();
 
+      function markEdited() {
+        dirtySessions.add(draftMapKey(dateISO, session.id));
+        setSessionDirty(true);
+      }
+
+      const tbody = document.createElement('tbody');
+      roster.forEach(studentName => {
+        tbody.appendChild(renderStudentRow(session.id, studentName, draft, markEdited));
+      });
+      table.appendChild(tbody);
+
+      scrollWrap.appendChild(table);
+      body.appendChild(scrollWrap);
+
       saveBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         saveSessionDraft(dateISO, session.id, roster);
+        dirtySessions.delete(draftMapKey(dateISO, session.id));
         setSessionDirty(false);
         renderDaySummary(dateISO);
       });
