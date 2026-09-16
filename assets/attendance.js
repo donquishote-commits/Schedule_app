@@ -1520,6 +1520,7 @@
   const coverSubjectSelect = makeCustomSelect('coverSubject');
   const coverRoomSelect = makeCustomSelect('coverRoom');
   const coverPeriodSelect = makeCustomSelect('coverPeriod');
+  const coverTeacherInput = document.getElementById('coverTeacherInput');
 
   coverPeriodSelect.setEntries(PERIODS.map(p => ({
     value: String(p.key),
@@ -1535,13 +1536,14 @@
 
   let coverOpenedSnapshot = '';
   function coverFormSnapshot() {
-    return [coverSubjectSelect.value, coverRoomSelect.value, coverPeriodSelect.value].join('|');
+    return [coverSubjectSelect.value, coverRoomSelect.value, coverPeriodSelect.value, coverTeacherInput.value].join('|');
   }
 
   function openCoverModal() {
     coverSubjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
     coverRoomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
     coverPeriodSelect.value = String(PERIODS[0].key);
+    coverTeacherInput.value = '';
     coverModal.hidden = false;
     coverOpenedSnapshot = coverFormSnapshot();
   }
@@ -1584,6 +1586,7 @@
       subject, room,
       sourceClassId: null,
       sourceDate: null,
+      teacherName: coverTeacherInput.value.trim() || null,
     });
     saveTempSessions();
     closeCoverModal();

@@ -549,6 +549,9 @@
     if (t.type === 'swap' && t.sourceDate) {
       addDetailRow('استُبدلت من', formatArabicFullDate(t.sourceDate));
     }
+    if (t.type === 'cover' && t.teacherName) {
+      addDetailRow('الأستاذ', t.teacherName);
+    }
     tempDetailsManageLink.href = `attendance.html?date=${encodeURIComponent(t.date)}`;
     tempDetailsModal.hidden = false;
   }

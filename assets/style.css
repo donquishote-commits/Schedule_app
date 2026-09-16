@@ -471,7 +471,8 @@ main {
   margin-top: 10px;
 }
 
-#classForm input[type="text"] {
+#classForm input[type="text"],
+#coverForm input[type="text"] {
   width: 100%;
   margin-top: 4px;
   padding: 8px 10px;
