@@ -43,7 +43,7 @@
   // any grade, so it's offered the full room list.
   const SUBJECT_ROOMS = {
     'دولة الكويت': ROOMS.filter(r => r.startsWith('10-')),
-    'الصحة النفسية': ROOMS.filter(r => r.startsWith('11 ')),
+    'الصحة النفسية': ROOMS.filter(r => r.startsWith('11 ') || r.startsWith('12 ')),
     'الفلسفة': ROOMS.filter(r => r.startsWith('12 د')),
     'علم النفس': ROOMS.filter(r => r.startsWith('11 د')),
     'الدستور': ROOMS.filter(r => r.startsWith('12 ')),
