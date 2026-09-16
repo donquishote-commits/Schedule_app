@@ -192,10 +192,38 @@
   const daySummaryEl = document.getElementById('daySummary');
   const holidayStateEl = document.getElementById('holidayState');
   const holidayToggleBtn = document.getElementById('holidayToggleBtn');
+  const holidayToggleIcon = document.getElementById('holidayToggleIcon');
+  const holidayToggleText = document.getElementById('holidayToggleText');
+
+  // Two hand-drawn calendar icons (currentColor, so they match the app's
+  // text color like the sort icon does) — a "+" mark to offer marking a
+  // day as a holiday, an "×" mark once it's already marked, so the icon
+  // itself signals which action the button will take.
+  const HOLIDAY_ICON_MARK = `
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/>
+      <line x1="8" y1="3" x2="8" y2="7"/>
+      <line x1="16" y1="3" x2="16" y2="7"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="12" y1="13" x2="12" y2="18"/>
+      <line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/>
+    </svg>`;
+  const HOLIDAY_ICON_UNMARK = `
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/>
+      <line x1="8" y1="3" x2="8" y2="7"/>
+      <line x1="16" y1="3" x2="16" y2="7"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <line x1="9.5" y1="13.5" x2="14.5" y2="18"/>
+      <line x1="14.5" y1="13.5" x2="9.5" y2="18"/>
+    </svg>`;
 
   function updateHolidayToggleLabel(dateISO) {
     if (!holidayToggleBtn) return;
-    holidayToggleBtn.textContent = isHoliday(dateISO) ? '🗓 إلغاء علامة العطلة الرسمية' : '🗓 وضع علامة عطلة رسمية';
+    const marked = isHoliday(dateISO);
+    holidayToggleIcon.innerHTML = marked ? HOLIDAY_ICON_UNMARK : HOLIDAY_ICON_MARK;
+    holidayToggleText.textContent = marked ? 'إلغاء العطلة' : 'عطلة رسمية';
+    holidayToggleBtn.title = marked ? 'إلغاء علامة العطلة الرسمية عن هذا اليوم' : 'وضع علامة على هذا اليوم كعطلة رسمية';
   }
 
   // Attendance percentages for the selected day, across every session
@@ -298,7 +326,7 @@
       sessionsContainer.innerHTML = '';
       noScheduleState.hidden = true;
       holidayStateEl.hidden = false;
-      holidayStateEl.textContent = 'هذا اليوم عطلة رسمية — لا تُسجَّل فيه بيانات حضور. اضغط على زر "إلغاء علامة العطلة الرسمية" أعلاه إذا وُضعت العلامة بالخطأ.';
+      holidayStateEl.textContent = 'هذا اليوم عطلة رسمية — لا تُسجَّل فيه بيانات حضور. اضغط على زر "إلغاء العطلة" أعلاه إذا وُضعت العلامة بالخطأ.';
       currentRenderedDate = dateISO;
       return;
     }

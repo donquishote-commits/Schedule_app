@@ -135,6 +135,10 @@ h1, h2, h3 {
   text-decoration: none;
 }
 
+#holidayToggleBtn {
+  gap: 6px;
+}
+
 .btn-primary {
   background: var(--primary);
   color: white;
