@@ -530,13 +530,32 @@
       });
       header.appendChild(swapBtn);
     } else {
+      // Editing is cover-only — a swap always mirrors its source class's
+      // subject/room/period exactly, so there's nothing on it to edit;
+      // "cancel" is its only action.
+      if (session.type === 'cover') {
+        const editCoverBtn = document.createElement('button');
+        editCoverBtn.type = 'button';
+        editCoverBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+        editCoverBtn.textContent = '✏️';
+        editCoverBtn.title = 'تعديل بيانات الحصة';
+        editCoverBtn.setAttribute('aria-label', 'تعديل بيانات الحصة');
+        editCoverBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCoverModal(session);
+        });
+        header.appendChild(editCoverBtn);
+      }
+
       const deleteTempBtn = document.createElement('button');
       deleteTempBtn.type = 'button';
-      deleteTempBtn.className = 'btn btn-ghost btn-small';
-      deleteTempBtn.textContent = session.type === 'swap' ? '↩ إلغاء التبديل' : '🗑 حذف الحصة';
-      deleteTempBtn.title = session.type === 'swap'
-        ? 'إلغاء التبديل وإرجاع الحصة الأصلية إلى يومها'
-        : 'حذف هذه الحصة المؤقتة';
+      const isCover = session.type === 'cover';
+      deleteTempBtn.className = 'btn btn-ghost btn-small' + (isCover ? ' icon-btn-round' : '');
+      deleteTempBtn.textContent = isCover ? '🗑' : '↩ إلغاء التبديل';
+      deleteTempBtn.title = isCover
+        ? 'حذف هذه الحصة المؤقتة'
+        : 'إلغاء التبديل وإرجاع الحصة الأصلية إلى يومها';
+      if (isCover) deleteTempBtn.setAttribute('aria-label', 'حذف هذه الحصة المؤقتة');
       deleteTempBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         deleteTempSession(session.id, dateISO);
@@ -1534,16 +1553,29 @@
     coverRoomSelect.populate(validRooms, roomToKeep, '— غير معيّن —', false, true);
   });
 
+  const coverModalTitle = document.getElementById('coverModalTitle');
+  const coverSubmitBtn = document.getElementById('coverSubmitBtn');
+
   let coverOpenedSnapshot = '';
   function coverFormSnapshot() {
     return [coverSubjectSelect.value, coverRoomSelect.value, coverPeriodSelect.value, coverTeacherInput.value].join('|');
   }
 
-  function openCoverModal() {
-    coverSubjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
-    coverRoomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
-    coverPeriodSelect.value = String(PERIODS[0].key);
-    coverTeacherInput.value = '';
+  // The session being edited, or null when adding a new one — set fresh
+  // on every open so a stale id can never leak into the next submit.
+  let editingCoverId = null;
+
+  // existingSession is omitted for "add new"; passed in (from the ✏️
+  // button on a cover session's card) to edit that session's fields.
+  function openCoverModal(existingSession) {
+    editingCoverId = existingSession ? existingSession.id : null;
+    coverModalTitle.textContent = existingSession ? 'تعديل حصة تغطية' : 'إضافة حصة تغطية';
+    coverSubmitBtn.textContent = existingSession ? 'حفظ' : 'إضافة';
+    const subject = existingSession ? existingSession.subject : '';
+    coverSubjectSelect.populate(SUBJECTS, subject, 'اختر المادة', true);
+    coverRoomSelect.populate(roomsForSubject(subject), existingSession ? existingSession.room : '', '— غير معيّن —', false, true);
+    coverPeriodSelect.value = String(existingSession ? existingSession.periodKey : PERIODS[0].key);
+    coverTeacherInput.value = existingSession ? (existingSession.teacherName || '') : '';
     coverModal.hidden = false;
     coverOpenedSnapshot = coverFormSnapshot();
   }
@@ -1551,6 +1583,7 @@
   function closeCoverModal() {
     coverModal.hidden = true;
     coverForm.reset();
+    editingCoverId = null;
   }
 
   function closeCoverModalIfConfirmed() {
@@ -1560,7 +1593,7 @@
     closeCoverModal();
   }
 
-  if (addCoverBtn) addCoverBtn.addEventListener('click', openCoverModal);
+  if (addCoverBtn) addCoverBtn.addEventListener('click', () => openCoverModal());
   closeCoverModalBtn.addEventListener('click', closeCoverModalIfConfirmed);
   cancelCoverBtn.addEventListener('click', closeCoverModalIfConfirmed);
 
@@ -1569,25 +1602,31 @@
     const subject = coverSubjectSelect.value.trim();
     const room = coverRoomSelect.value.trim();
     const periodKey = Number(coverPeriodSelect.value);
+    const teacherName = coverTeacherInput.value.trim() || null;
     if (!subject) {
       alert('اختر المادة أولًا.');
       return;
     }
     const dateISO = datePicker.value || todayISO();
-    if (periodTakenOnDate(dateISO, periodKey, null)) {
+    if (periodTakenOnDate(dateISO, periodKey, editingCoverId)) {
       alert('هناك حصة أخرى في هذا الوقت بهذا اليوم. اختر حصة أخرى أو عدّل الحصة الموجودة.');
       return;
     }
-    tempSessions.push({
-      id: uid(),
-      type: 'cover',
-      date: dateISO,
-      periodKey,
-      subject, room,
-      sourceClassId: null,
-      sourceDate: null,
-      teacherName: coverTeacherInput.value.trim() || null,
-    });
+    if (editingCoverId) {
+      const existing = tempSessions.find(t => t.id === editingCoverId);
+      if (existing) Object.assign(existing, { subject, room, periodKey, teacherName });
+    } else {
+      tempSessions.push({
+        id: uid(),
+        type: 'cover',
+        date: dateISO,
+        periodKey,
+        subject, room,
+        sourceClassId: null,
+        sourceDate: null,
+        teacherName,
+      });
+    }
     saveTempSessions();
     closeCoverModal();
     render();
