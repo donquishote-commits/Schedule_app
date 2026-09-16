@@ -419,8 +419,20 @@
     if ((classes[className] || []).length > 1) {
       const sortBtn = document.createElement('button');
       sortBtn.type = 'button';
-      sortBtn.className = 'btn btn-ghost btn-small sort-alpha-btn';
-      sortBtn.textContent = 'ترتيب أبجدي';
+      sortBtn.className = 'btn btn-ghost btn-small icon-btn-round sort-alpha-btn';
+      sortBtn.title = 'ترتيب أبجدي';
+      sortBtn.setAttribute('aria-label', 'ترتيب أبجدي');
+      // A plain emoji here can't be recolored to match the app's text
+      // color (its colors are baked into the font), so this is a small
+      // hand-drawn sort icon using currentColor instead.
+      sortBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="15" y2="6"/>
+          <line x1="3" y1="12" x2="12" y2="12"/>
+          <line x1="3" y1="18" x2="9" y2="18"/>
+          <line x1="19" y1="5" x2="19" y2="17"/>
+          <polyline points="16,14 19,18 22,14"/>
+        </svg>`;
       sortBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         classes[className].sort((a, b) => a.localeCompare(b, 'ar'));
