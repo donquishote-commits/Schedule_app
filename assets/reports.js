@@ -5,11 +5,15 @@
   const STUDENTS_KEY = 'schedule_app_students_v1';
   const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
   const REPORTS_KEY = 'schedule_app_reports_v1';
+  const TERMS_KEY = 'schedule_app_terms_v1';
 
   const PARTICIPATION_SCALE = { excellent: 1, normal: 2, none: 3 };
   const PARTICIPATION_LABELS = { 1: 'ممتاز', 2: 'متوسط', 3: 'ضعيف' };
   const PARTICIPATION_DEFAULT = 2; // متوسط — used for days the student attended but wasn't rated
-  const PARTICIPATION_START_DATE = '2026-12-20'; // only count participation from this date on
+  // Fallback only used until the teacher sets up term dates from صفحة
+  // المتابعة اليومية (⚙️ ← تحديد الفصلين الدراسيين) — once they do,
+  // isOutsideTerms() below takes over as the real boundary.
+  const PARTICIPATION_START_DATE = '2026-12-20';
 
   function isolateLTR(text) {
     return `‭${text}‬`;
@@ -28,6 +32,19 @@
   const scheduleClasses = loadJSON(SCHEDULE_KEY, []);
   const students = loadJSON(STUDENTS_KEY, {});
   const attendance = loadJSON(ATTENDANCE_KEY, {});
+  const terms = loadJSON(TERMS_KEY, { term1Start: '', term1End: '', term2Start: '', term2End: '' });
+  const termsConfigured = !!(terms.term1Start || terms.term1End || terms.term2Start || terms.term2End);
+
+  // Mirrors attendance.js's isOutsideTerms() — a day before the first
+  // term starts, in the mid-year gap (once both of those boundaries are
+  // set), or after the second term ends.
+  function isOutsideTerms(dateISO) {
+    if (terms.term1Start && dateISO < terms.term1Start) return true;
+    if (terms.term1End && terms.term2Start && dateISO > terms.term1End && dateISO < terms.term2Start) return true;
+    if (terms.term2End && dateISO > terms.term2End) return true;
+    return false;
+  }
+
   let reports = loadJSON(REPORTS_KEY, {});
 
   function saveReports() {
@@ -73,10 +90,13 @@
       else if (status === 'late') late++;
       else if (status === 'absent') absent++;
 
-      // Participation only counts from PARTICIPATION_START_DATE on, and
-      // only for days the student actually attended. A day they attended
-      // but wasn't explicitly rated counts as متوسط by default.
-      if (date >= PARTICIPATION_START_DATE && (status === 'present' || status === 'late')) {
+      // Participation only counts for days actually within the school
+      // term (once the teacher's set one up — otherwise falls back to the
+      // old fixed start date), and only for days the student actually
+      // attended. A day they attended but wasn't explicitly rated counts
+      // as متوسط by default.
+      const withinTerm = termsConfigured ? !isOutsideTerms(date) : date >= PARTICIPATION_START_DATE;
+      if (withinTerm && (status === 'present' || status === 'late')) {
         const rated = entry.participation && PARTICIPATION_SCALE[entry.participation] !== undefined;
         participationSum += rated ? PARTICIPATION_SCALE[entry.participation] : PARTICIPATION_DEFAULT;
         participationCount++;
@@ -697,6 +717,13 @@
   // close/cancel buttons do, so a stray tap outside can't discard a note.
 
   // ---------- Init ----------
+  const participationStartHintEl = document.getElementById('participationStartHint');
+  if (participationStartHintEl) {
+    participationStartHintEl.textContent = termsConfigured
+      ? 'يُحتسب فقط ضمن نطاق الفصلين الدراسيين المحدَّدَين (من صفحة المتابعة اليومية) — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".'
+      : 'يبدأ احتساب المشاركة من 20/12 فما بعد — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".';
+  }
+
   render();
   renderOverview();
 

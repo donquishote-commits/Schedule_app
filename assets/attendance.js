@@ -5,6 +5,7 @@
   const STUDENTS_KEY = 'schedule_app_students_v1';
   const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
   const HOLIDAYS_KEY = 'schedule_app_holidays_v1';
+  const TERMS_KEY = 'schedule_app_terms_v1';
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -56,6 +57,7 @@
   let students = loadJSON(STUDENTS_KEY, {});
   let attendance = loadJSON(ATTENDANCE_KEY, {});
   let holidays = new Set(loadJSON(HOLIDAYS_KEY, []));
+  let terms = loadJSON(TERMS_KEY, { term1Start: '', term1End: '', term2Start: '', term2End: '' });
 
   function saveAttendance() {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance));
@@ -65,8 +67,24 @@
     localStorage.setItem(HOLIDAYS_KEY, JSON.stringify([...holidays]));
   }
 
+  function saveTerms() {
+    localStorage.setItem(TERMS_KEY, JSON.stringify(terms));
+  }
+
   function isHoliday(dateISO) {
     return holidays.has(dateISO);
+  }
+
+  // A day is "outside the term" if it falls before the first term starts,
+  // in the mid-year gap between the two terms (only once both of those
+  // boundaries are set), or after the second term ends. Any field left
+  // blank simply doesn't restrict from that side — so this has no effect
+  // at all until the teacher fills in at least one date.
+  function isOutsideTerms(dateISO) {
+    if (terms.term1Start && dateISO < terms.term1Start) return true;
+    if (terms.term1End && terms.term2Start && dateISO > terms.term1End && dateISO < terms.term2Start) return true;
+    if (terms.term2End && dateISO > terms.term2End) return true;
+    return false;
   }
 
   // ---------- Date helpers ----------
@@ -191,6 +209,7 @@
   const noScheduleState = document.getElementById('noScheduleState');
   const daySummaryEl = document.getElementById('daySummary');
   const holidayStateEl = document.getElementById('holidayState');
+  const termOutOfRangeStateEl = document.getElementById('termOutOfRangeState');
   const holidayToggleBtn = document.getElementById('holidayToggleBtn');
   const holidayToggleIcon = document.getElementById('holidayToggleIcon');
   const holidayToggleText = document.getElementById('holidayToggleText');
@@ -325,12 +344,24 @@
       daySummaryEl.hidden = true;
       sessionsContainer.innerHTML = '';
       noScheduleState.hidden = true;
+      termOutOfRangeStateEl.hidden = true;
       holidayStateEl.hidden = false;
       holidayStateEl.textContent = 'هذا اليوم عطلة رسمية — لا تُسجَّل فيه بيانات حضور. اضغط على زر "إلغاء العطلة" أعلاه إذا وُضعت العلامة بالخطأ.';
       currentRenderedDate = dateISO;
       return;
     }
     holidayStateEl.hidden = true;
+
+    if (isOutsideTerms(dateISO)) {
+      daySummaryEl.hidden = true;
+      sessionsContainer.innerHTML = '';
+      noScheduleState.hidden = true;
+      termOutOfRangeStateEl.hidden = false;
+      termOutOfRangeStateEl.textContent = 'هذا اليوم خارج نطاق الفصلين الدراسيين المحدَّدَين — لا دوام فيه، ولن تُحتسب بياناته بمتوسط المشاركة. عدّل التواريخ من قائمة الخيارات ⚙️ إذا كانت خاطئة.';
+      currentRenderedDate = dateISO;
+      return;
+    }
+    termOutOfRangeStateEl.hidden = true;
 
     renderDaySummary(dateISO);
     sessionsContainer.innerHTML = '';
@@ -1072,6 +1103,71 @@
       }
     }, true);
     window.addEventListener('resize', () => { moreMenu.hidden = true; });
+  }
+
+  // ---------- Term date ranges ----------
+  const termsBtn = document.getElementById('termsBtn');
+  const termsModal = document.getElementById('termsModal');
+  const termsForm = document.getElementById('termsForm');
+  const term1StartInput = document.getElementById('term1Start');
+  const term1EndInput = document.getElementById('term1End');
+  const term2StartInput = document.getElementById('term2Start');
+  const term2EndInput = document.getElementById('term2End');
+  const closeTermsModalBtn = document.getElementById('closeTermsModalBtn');
+  const cancelTermsBtn = document.getElementById('cancelTermsBtn');
+
+  let termsOpenedSnapshot = '';
+  function termsFormSnapshot() {
+    return [term1StartInput.value, term1EndInput.value, term2StartInput.value, term2EndInput.value].join('|');
+  }
+
+  function openTermsModal() {
+    term1StartInput.value = terms.term1Start || '';
+    term1EndInput.value = terms.term1End || '';
+    term2StartInput.value = terms.term2Start || '';
+    term2EndInput.value = terms.term2End || '';
+    termsModal.hidden = false;
+    termsOpenedSnapshot = termsFormSnapshot();
+  }
+
+  function closeTermsModal() {
+    termsModal.hidden = true;
+  }
+
+  // Same "discard" guard as the other modals — checks for unsaved edits
+  // before throwing them away; a successful save calls closeTermsModal()
+  // directly since its change is already committed.
+  function closeTermsModalIfConfirmed() {
+    if (termsFormSnapshot() !== termsOpenedSnapshot) {
+      if (!confirm('لديك تعديلات على تواريخ الفصلين لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه التعديلات. هل تريد المتابعة؟')) return;
+    }
+    closeTermsModal();
+  }
+
+  if (termsBtn) termsBtn.addEventListener('click', openTermsModal);
+  if (closeTermsModalBtn) closeTermsModalBtn.addEventListener('click', closeTermsModalIfConfirmed);
+  if (cancelTermsBtn) cancelTermsBtn.addEventListener('click', closeTermsModalIfConfirmed);
+
+  if (termsForm) {
+    termsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const t1s = term1StartInput.value || '';
+      const t1e = term1EndInput.value || '';
+      const t2s = term2StartInput.value || '';
+      const t2e = term2EndInput.value || '';
+      if (t1s && t1e && t1s > t1e) {
+        alert('تاريخ نهاية الفصل الأول قبل تاريخ بدايته — راجع التواريخ.');
+        return;
+      }
+      if (t2s && t2e && t2s > t2e) {
+        alert('تاريخ نهاية الفصل الثاني قبل تاريخ بدايته — راجع التواريخ.');
+        return;
+      }
+      terms = { term1Start: t1s, term1End: t1e, term2Start: t2s, term2End: t2e };
+      saveTerms();
+      closeTermsModal();
+      render();
+    });
   }
 
   // ---------- Init ----------

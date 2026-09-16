@@ -23,6 +23,7 @@
     <div class="menu-wrap">
       <button type="button" id="moreMenuBtn" class="btn btn-ghost icon-btn-round" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-haspopup="true">⚙️</button>
       <div id="moreMenu" class="dropdown-menu" hidden>
+        <button id="termsBtn" class="btn btn-ghost" title="تحديد تواريخ بداية ونهاية الفصلين الدراسيين">📅 تحديد الفصلين الدراسيين</button>
         <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
       </div>
     </div>
@@ -49,6 +50,7 @@
 
   <div id="daySummary" class="day-summary" hidden></div>
   <div id="holidayState" class="empty-state" hidden></div>
+  <div id="termOutOfRangeState" class="empty-state" hidden></div>
 
   <div id="sessionsContainer"></div>
   <div id="noScheduleState" class="empty-state" hidden>لا توجد حصص مجدولة في هذا اليوم.</div>
@@ -62,6 +64,45 @@
       <button type="button" class="icon-btn" id="closeToolsModalBtn" aria-label="إغلاق">&times;</button>
     </div>
     <div id="toolsModalBody"></div>
+  </div>
+</div>
+
+<!-- Term date ranges: used to exclude out-of-term days from the schedule
+     view and from the participation average in the reports page. -->
+<div id="termsModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>تحديد الفصلين الدراسيين</h2>
+      <button type="button" class="icon-btn" id="closeTermsModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="termsForm">
+      <p class="hint-text">
+        أي يوم خارج نطاق الفصلين (قبل بداية الأول، أو بين نهاية الأول وبداية الثاني، أو بعد
+        نهاية الثاني) لن يظهر فيه الجدول، ولن تُحتسب بياناته بمتوسط المشاركة بصفحة التقارير.
+        اترك أي حقل فارغًا إذا ما تبي تفعيل القيد من جهته.
+      </p>
+      <div class="row">
+        <label class="form-field">بداية الفصل الأول
+          <input type="date" id="term1Start">
+        </label>
+        <label class="form-field">نهاية الفصل الأول
+          <input type="date" id="term1End">
+        </label>
+      </div>
+      <div class="row">
+        <label class="form-field">بداية الفصل الثاني
+          <input type="date" id="term2Start">
+        </label>
+        <label class="form-field">نهاية الفصل الثاني
+          <input type="date" id="term2End">
+        </label>
+      </div>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelTermsBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
   </div>
 </div>
 
