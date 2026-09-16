@@ -170,15 +170,33 @@ main {
 .week-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+/* A 3-column grid (◀ arrow | label | arrow ▶) instead of a plain flex
+   row — a flex row lets a longer/shorter week label push the following
+   arrow sideways on every navigation, which reads as the button jumping
+   around. Grid columns keep both arrows pinned to fixed positions; only
+   the middle (1fr) column's content changes width. */
+.week-nav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .week-label {
   font-weight: 600;
   color: var(--text-muted);
   font-size: 0.9rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .schedule-wrap {

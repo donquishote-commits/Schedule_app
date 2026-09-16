@@ -483,13 +483,15 @@
 
     block.appendChild(buildSubjectLine(t.subject, t.type === 'swap' ? '🔁' : '➕'));
 
-    const metaParts = [];
-    if (t.room) metaParts.push(isolateLTR(t.room));
-    metaParts.push(formatArabicDateShort(t.date));
-    const meta = document.createElement('span');
-    meta.className = 'meta';
-    meta.textContent = metaParts.join(' — ');
-    block.appendChild(meta);
+    // No date here — the day column's own date sub-label (see renderGrid)
+    // already says which day this is, and the badge is too small to
+    // repeat it without crowding the room.
+    if (t.room) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = isolateLTR(t.room);
+      block.appendChild(meta);
+    }
 
     block.addEventListener('click', (e) => {
       e.stopPropagation();
