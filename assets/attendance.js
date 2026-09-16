@@ -489,9 +489,19 @@
     header.appendChild(chevron);
 
     if (session.type) {
+      // Icon and label as separate flex-item spans, not one string with the
+      // icon typed inline — the Unicode bidi algorithm placed a neutral
+      // symbol like ➕ inconsistently mixed into Arabic text (backwards for
+      // ➕, fine for 🔁); flex layout keeps either pinned to the right side
+      // regardless, matching normal Arabic reading order.
       const badge = document.createElement('span');
       badge.className = 'temp-badge';
-      badge.textContent = session.type === 'swap' ? '🔁 تبديل' : '➕ تغطية';
+      const badgeIcon = document.createElement('span');
+      badgeIcon.textContent = session.type === 'swap' ? '🔁' : '➕';
+      const badgeText = document.createElement('span');
+      badgeText.textContent = session.type === 'swap' ? 'تبديل' : 'تغطية';
+      badge.appendChild(badgeIcon);
+      badge.appendChild(badgeText);
       header.appendChild(badge);
     }
 

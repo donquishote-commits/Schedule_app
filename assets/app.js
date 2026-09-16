@@ -326,6 +326,28 @@
     window.addEventListener('resize', centerBreakLabels);
   }
 
+  // Builds the subject line as an icon span + text span (a flex row),
+  // instead of one string with the icon typed inline — mixing a symbol
+  // like ➕ into the same Arabic text run left its on-screen position up
+  // to the Unicode bidi algorithm, which placed 🔁 correctly but ➕
+  // backwards. Flex layout in the RTL container keeps the icon pinned to
+  // the line's leading edge regardless, for every icon.
+  function buildSubjectLine(text, icon) {
+    const subject = document.createElement('span');
+    subject.className = 'subject';
+    if (icon) {
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'subject-icon';
+      iconSpan.textContent = icon;
+      subject.appendChild(iconSpan);
+    }
+    const textSpan = document.createElement('span');
+    textSpan.className = 'subject-text';
+    textSpan.textContent = text;
+    subject.appendChild(textSpan);
+    return subject;
+  }
+
   // opts.swappedAway marks that this week's upcoming occurrence has been
   // moved elsewhere via تبديل — still shown (it's the fixed weekly
   // schedule, unaffected week to week) but faded with a 🔁 marker instead
@@ -346,10 +368,7 @@
     block.style.borderColor = colors.border;
     block.style.color = colors.text;
 
-    const subject = document.createElement('span');
-    subject.className = 'subject';
-    subject.textContent = swappedAway ? `🔁 ${c.subject}` : c.subject;
-    block.appendChild(subject);
+    block.appendChild(buildSubjectLine(c.subject, swappedAway ? '🔁' : null));
 
     if (c.room) {
       const meta = document.createElement('span');
@@ -379,10 +398,7 @@
     const block = document.createElement('div');
     block.className = 'swap-block';
 
-    const subject = document.createElement('span');
-    subject.className = 'subject';
-    subject.textContent = `${t.type === 'swap' ? '🔁' : '➕'} ${t.subject}`;
-    block.appendChild(subject);
+    block.appendChild(buildSubjectLine(t.subject, t.type === 'swap' ? '🔁' : '➕'));
 
     const metaParts = [];
     if (t.room) metaParts.push(isolateLTR(t.room));

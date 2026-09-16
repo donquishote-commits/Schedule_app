@@ -272,11 +272,17 @@ main {
   justify-content: center;
 }
 
+/* .subject is a flex row (icon span + text span) rather than one string
+   with the icon typed inline — mixing an emoji/symbol into the same text
+   run as Arabic left its position at the mercy of the Unicode bidi
+   algorithm, which placed it inconsistently (fine for 🔁, backwards for
+   ➕). Flex layout in this RTL container always keeps the icon at the
+   line's leading edge, regardless of what the algorithm would do with it. */
 .class-block .subject {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
 }
 
@@ -291,6 +297,16 @@ main {
 
 .class-block-swapped-away {
   opacity: 0.55;
+}
+
+.subject-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.subject-icon {
+  flex-shrink: 0;
 }
 
 .class-block .note-dot {
@@ -329,10 +345,10 @@ main {
   cursor: pointer;
 }
 .swap-block .subject {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   min-width: 0;
 }
 .swap-block .meta {
@@ -905,6 +921,7 @@ main {
 .temp-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 0.76rem;
