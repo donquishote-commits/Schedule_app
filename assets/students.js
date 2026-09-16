@@ -499,7 +499,9 @@
       removeBtn.type = 'button';
       removeBtn.className = 'student-remove';
       removeBtn.innerHTML = '&times;';
+      removeBtn.title = 'حذف الطالب';
       removeBtn.addEventListener('click', () => {
+        if (!confirm(`حذف الطالب "${isolateLTR(student)}" من فصل "${isolateLTR(className)}"؟`)) return;
         classes[className].splice(index, 1);
         saveClasses();
         render();
