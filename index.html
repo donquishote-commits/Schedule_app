@@ -109,6 +109,23 @@
   </div>
 </div>
 
+<!-- Read-only details for a temporary session (تبديل/تغطية) cell in the
+     grid — created and managed from صفحة المتابعة اليومية, this just
+     shows what it is before jumping there to change anything. -->
+<div id="tempDetailsModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="tempDetailsTitle">تفاصيل الحصة</h2>
+      <button class="icon-btn" id="closeTempDetailsModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <div id="tempDetailsBody"></div>
+    <div class="modal-footer">
+      <div class="spacer"></div>
+      <a id="tempDetailsManageLink" href="#" class="btn btn-primary">فتح في المتابعة اليومية</a>
+    </div>
+  </div>
+</div>
+
 <script src="assets/app.js"></script>
 </body>
 </html>

@@ -309,6 +309,7 @@ main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
 }
 
@@ -317,13 +318,17 @@ main {
    run as Arabic left its position at the mercy of the Unicode bidi
    algorithm, which placed it inconsistently (fine for 🔁, backwards for
    ➕). Flex layout in this RTL container always keeps the icon at the
-   line's leading edge, regardless of what the algorithm would do with it. */
+   line's leading edge, regardless of what the algorithm would do with it.
+   justify-content here (plus align-items:center on the block above) is
+   what actually centers the icon+text pair as a unit within the cell. */
 .class-block .subject {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 4px;
   font-weight: 600;
   min-width: 0;
+  max-width: 100%;
 }
 
 .class-block .meta {
@@ -331,8 +336,10 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
   font-size: 0.72rem;
   min-width: 0;
+  max-width: 100%;
 }
 
 .class-block-swapped-away {
@@ -381,23 +388,28 @@ main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 .swap-block .subject {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 4px;
   font-weight: 700;
   min-width: 0;
+  max-width: 100%;
 }
 .swap-block .meta {
   opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
   font-size: 0.72rem;
   min-width: 0;
+  max-width: 100%;
 }
 
 /* Modal */

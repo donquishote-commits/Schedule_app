@@ -473,10 +473,12 @@
     return block;
   }
 
-  // Managed from صفحة المتابعة اليومية only — clicking this jumps straight
-  // to that exact date there instead of leaving the teacher to find it.
-  // Kept to the same two-line shape as renderClassBlock (subject, meta) so
-  // it fits the grid's fixed row height instead of stretching it.
+  // Managed from صفحة المتابعة اليومية only — clicking this opens a
+  // read-only details popup first (see openTempDetailsModal below), with
+  // a link through to that exact date there for anything that needs
+  // changing. Kept to the same two-line shape as renderClassBlock
+  // (subject, meta) so it fits the grid's fixed row height instead of
+  // stretching it.
   function renderTempBlock(t) {
     const block = document.createElement('div');
     block.className = 'swap-block';
@@ -495,10 +497,69 @@
 
     block.addEventListener('click', (e) => {
       e.stopPropagation();
-      location.href = `attendance.html?date=${encodeURIComponent(t.date)}`;
+      openTempDetailsModal(t);
     });
     return block;
   }
+
+  function periodLabelFor(periodKey) {
+    const p = CLASS_PERIODS.find(x => x.key === periodKey);
+    if (!p) return '';
+    return `${p.label} (${formatRange(to12(p.start), to12(p.end))})`;
+  }
+
+  // Weekday name + short date, e.g. "الخميس، 17 سبتمبر" — used in the
+  // details popup where formatArabicDateShort's day-less form (fine for a
+  // grid cell whose own column already names the day) would be ambiguous.
+  function formatArabicFullDate(iso) {
+    const d = isoToDate(iso);
+    const dayInfo = DAYS.find(x => x.key === d.getDay());
+    return `${dayInfo ? dayInfo.label + '، ' : ''}${formatArabicDateShort(iso)}`;
+  }
+
+  // ---------- Temp session details popup ----------
+  const tempDetailsModal = document.getElementById('tempDetailsModal');
+  const tempDetailsTitle = document.getElementById('tempDetailsTitle');
+  const tempDetailsBody = document.getElementById('tempDetailsBody');
+  const tempDetailsManageLink = document.getElementById('tempDetailsManageLink');
+  const closeTempDetailsModalBtn = document.getElementById('closeTempDetailsModalBtn');
+
+  function addDetailRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'profile-row-label';
+    labelSpan.textContent = label;
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'profile-row-value';
+    valueSpan.textContent = value;
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    tempDetailsBody.appendChild(row);
+  }
+
+  function openTempDetailsModal(t) {
+    tempDetailsTitle.textContent = t.type === 'swap' ? 'تفاصيل حصة مبدّلة' : 'تفاصيل حصة تغطية';
+    tempDetailsBody.innerHTML = '';
+    addDetailRow('النوع', t.type === 'swap' ? '🔁 تبديل' : '➕ تغطية');
+    addDetailRow('المادة', t.subject);
+    addDetailRow('الصف', t.room ? isolateLTR(t.room) : '— غير معيّن —');
+    addDetailRow('الحصة', periodLabelFor(t.periodKey));
+    addDetailRow('التاريخ', formatArabicFullDate(t.date));
+    if (t.type === 'swap' && t.sourceDate) {
+      addDetailRow('استُبدلت من', formatArabicFullDate(t.sourceDate));
+    }
+    tempDetailsManageLink.href = `attendance.html?date=${encodeURIComponent(t.date)}`;
+    tempDetailsModal.hidden = false;
+  }
+
+  function closeTempDetailsModal() {
+    tempDetailsModal.hidden = true;
+  }
+
+  if (closeTempDetailsModalBtn) closeTempDetailsModalBtn.addEventListener('click', closeTempDetailsModal);
+  // Clicking the backdrop doesn't close it — same convention as every
+  // other modal in the app.
 
   // ---------- Modal ----------
   const modal = document.getElementById('classModal');
