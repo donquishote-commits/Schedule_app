@@ -441,7 +441,7 @@
     block.className = 'class-block';
     if (swappedAway) {
       block.classList.add('class-block-swapped-away');
-      block.title = 'حصتك بهذا الأسبوع بُدِّلت لتاريخ آخر — لا تزال جزءًا من جدولك الثابت، وتبين طبيعية في أي أسبوع ما فيه تبديل عليها.';
+      block.title = 'حصتك بهذا الأسبوع بُدِّلت إلى تاريخ آخر — لا تزال جزءًا من جدولك الثابت، وتظهر بشكل طبيعي في أي أسبوع لا يوجد فيه تبديل عليها.';
     }
     // Always computed live from the subject, never read from storage —
     // so retuning the palette or fixing an old entry's subject instantly
