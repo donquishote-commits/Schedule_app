@@ -9,6 +9,8 @@
   --danger: #a8432f;
   --break-bg: #efe3c4;
   --break-text: #8a5f1f;
+  --swap-bg: #1f3a5f;
+  --swap-text: #ffffff;
   --radius: 6px;
   --font-display: "Reem Kufi", Tahoma, "Segoe UI", "Noto Sans Arabic", Arial, sans-serif;
 }
@@ -303,6 +305,50 @@ main {
   font-size: 1.1rem;
 }
 
+/* A temporary session (تبديل/تغطية) in the schedule grid — filled solid
+   in a distinct navy so it reads as an exception at a glance, unlike the
+   dashed pastel blocks of the recurring weekly classes. */
+.swap-block {
+  position: relative;
+  height: 100%;
+  min-height: 54px;
+  border-radius: 6px;
+  border: 1.5px solid var(--swap-bg);
+  background: var(--swap-bg);
+  color: var(--swap-text);
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.swap-block .swap-icon {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.swap-block .subject {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.swap-block .meta {
+  font-size: 0.72rem;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.swap-block .swap-date {
+  font-size: 0.66rem;
+  opacity: 0.85;
+}
+
 /* Modal */
 .modal-backdrop {
   position: fixed;
@@ -351,7 +397,11 @@ main {
 }
 
 #classForm label,
-#classForm .form-field {
+#classForm .form-field,
+#coverForm label,
+#coverForm .form-field,
+#swapForm label,
+#swapForm .form-field {
   display: block;
   font-size: 0.82rem;
   color: var(--text-muted);
@@ -855,6 +905,17 @@ main {
 .session-card-header .session-meta {
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+.temp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--swap-bg);
+  color: var(--swap-text);
 }
 
 .session-card-body {

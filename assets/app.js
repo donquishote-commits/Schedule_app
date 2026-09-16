@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'schedule_app_classes_ar_v1';
+  const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -163,6 +164,53 @@
     return classes.find(c => c.day === day && c.periodKey === periodKey);
   }
 
+  // ---------- Temporary sessions (تبديل / تغطية), read-only here ----------
+  // Created and managed from صفحة المتابعة اليومية — this page only shows
+  // whichever one is coming up soonest in each day×period cell, as a
+  // heads-up, and links through to manage it.
+  function loadTempSessions() {
+    try {
+      const raw = localStorage.getItem(TEMP_SESSIONS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.error('Failed to load temporary sessions from storage', e);
+      return [];
+    }
+  }
+  const tempSessions = loadTempSessions();
+
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function isoToDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  function formatArabicDateShort(iso) {
+    const d = isoToDate(iso);
+    const dayInfo = DAYS.find(x => x.key === d.getDay());
+    return `${dayInfo ? dayInfo.label : ''} ${d.getDate()} ${ARABIC_MONTHS[d.getMonth()]}`;
+  }
+
+  // The nearest upcoming (today or later) temp session for this exact
+  // weekday × period — if more than one exists, only the soonest shows;
+  // the rest surface once their turn comes.
+  function nearestUpcomingTempSession(dayKey, periodKey) {
+    const today = todayISO();
+    let best = null;
+    tempSessions.forEach(t => {
+      if (t.periodKey !== periodKey) return;
+      if (t.date < today) return;
+      if (isoToDate(t.date).getDay() !== dayKey) return;
+      if (!best || t.date < best.date) best = t;
+    });
+    return best;
+  }
+
   // ---------- Grid rendering ----------
   const gridEl = document.getElementById('grid');
 
@@ -223,9 +271,12 @@
       DAYS.forEach(day => {
         const td = document.createElement('td');
         td.className = 'class-cell';
+        const tempMatch = nearestUpcomingTempSession(day.key, period.key);
         const existing = findClass(day.key, period.key);
 
-        if (existing) {
+        if (tempMatch) {
+          td.appendChild(renderTempBlock(tempMatch));
+        } else if (existing) {
           td.appendChild(renderClassBlock(existing));
         } else {
           td.addEventListener('click', () => openAddModal(day.key, period.key));
@@ -291,6 +342,41 @@
     block.addEventListener('click', (e) => {
       e.stopPropagation();
       openEditModal(c.id);
+    });
+    return block;
+  }
+
+  // Managed from صفحة المتابعة اليومية only — clicking this jumps straight
+  // to that exact date there instead of leaving the teacher to find it.
+  function renderTempBlock(t) {
+    const block = document.createElement('div');
+    block.className = 'swap-block';
+
+    const iconLine = document.createElement('span');
+    iconLine.className = 'swap-icon';
+    iconLine.textContent = t.type === 'swap' ? '🔁 تبديل' : '➕ تغطية';
+    block.appendChild(iconLine);
+
+    const subject = document.createElement('span');
+    subject.className = 'subject';
+    subject.textContent = t.subject;
+    block.appendChild(subject);
+
+    if (t.room) {
+      const meta = document.createElement('span');
+      meta.className = 'meta';
+      meta.textContent = isolateLTR(t.room);
+      block.appendChild(meta);
+    }
+
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'swap-date';
+    dateSpan.textContent = formatArabicDateShort(t.date);
+    block.appendChild(dateSpan);
+
+    block.addEventListener('click', (e) => {
+      e.stopPropagation();
+      location.href = `attendance.html?date=${encodeURIComponent(t.date)}`;
     });
     return block;
   }

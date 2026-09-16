@@ -6,6 +6,29 @@
   const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
   const HOLIDAYS_KEY = 'schedule_app_holidays_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
+  const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
+
+  // Must match assets/app.js's SUBJECTS/ROOMS/SUBJECT_ROOMS — used by the
+  // "إضافة حصة لهذا اليوم" (تغطية) form, which needs the same subject/room
+  // pickers as the real schedule editor.
+  const SUBJECTS = ['الفلسفة', 'علم النفس', 'الدستور', 'دولة الكويت', 'الصحة النفسية'];
+  const ROOMS = [
+    '10-1', '10-2', '10-3', '10-4', '10-5', '10-6', '10-7', '10-8', '10-9',
+    '11 د 1', '11 د 2', '11 د 3',
+    '11 ع 1', '11 ع 2', '11 ع 3', '11 ع 4', '11 ع 5', '11 ع 6', '11 ع 7', '11 ع 8',
+    '12 د 1', '12 د 2',
+    '12 ع 1', '12 ع 2', '12 ع 3', '12 ع 4', '12 ع 5', '12 ع 6', '12 ع 7', '12 ع 8',
+  ];
+  const SUBJECT_ROOMS = {
+    'دولة الكويت': ROOMS.filter(r => r.startsWith('10-')),
+    'الصحة النفسية': ROOMS.filter(r => r.startsWith('11 ') || r.startsWith('12 ')),
+    'الفلسفة': ROOMS.filter(r => r.startsWith('12 د')),
+    'علم النفس': ROOMS.filter(r => r.startsWith('11 د')),
+    'الدستور': ROOMS.filter(r => r.startsWith('12 ')),
+  };
+  function roomsForSubject(subject) {
+    return SUBJECT_ROOMS[subject] || ROOMS;
+  }
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -58,6 +81,10 @@
   let attendance = loadJSON(ATTENDANCE_KEY, {});
   let holidays = new Set(loadJSON(HOLIDAYS_KEY, []));
   let terms = loadJSON(TERMS_KEY, { term1Start: '', term1End: '', term2Start: '', term2End: '' });
+  // One-off sessions (تبديل/تغطية) — never part of the recurring weekly
+  // schedule. type:'swap' entries also carry sourceClassId/sourceDate,
+  // identifying the recurring class+date they replace for that one day.
+  let tempSessions = loadJSON(TEMP_SESSIONS_KEY, []);
 
   function saveAttendance() {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance));
@@ -69,6 +96,14 @@
 
   function saveTerms() {
     localStorage.setItem(TERMS_KEY, JSON.stringify(terms));
+  }
+
+  function saveTempSessions() {
+    localStorage.setItem(TEMP_SESSIONS_KEY, JSON.stringify(tempSessions));
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
   function isHoliday(dateISO) {
@@ -106,6 +141,49 @@
     const d = isoToDate(iso);
     d.setDate(d.getDate() + delta);
     return dateToISO(d);
+  }
+
+  // ---------- Effective sessions for a date (recurring schedule + temp) ----------
+  // A swapped-away class disappears only from its own source date — the
+  // recurring class definition itself is never touched, so every other
+  // week of that weekday still shows it normally.
+  function effectiveSessionsForDate(dateISO) {
+    const weekday = isoToDate(dateISO).getDay();
+    const hiddenClassIds = new Set(
+      tempSessions.filter(t => t.type === 'swap' && t.sourceDate === dateISO).map(t => t.sourceClassId)
+    );
+    const regular = scheduleClasses.filter(c => c.day === weekday && !hiddenClassIds.has(c.id));
+    const temp = tempSessions.filter(t => t.date === dateISO);
+    return [...regular, ...temp].sort((a, b) => a.periodKey - b.periodKey);
+  }
+
+  // Used when creating a swap/cover session, to block landing it on a
+  // period that's already taken that date — by the recurring schedule or
+  // by another temporary session.
+  function periodTakenOnDate(dateISO, periodKey, excludeSessionId) {
+    return effectiveSessionsForDate(dateISO).some(s => s.periodKey === periodKey && s.id !== excludeSessionId);
+  }
+
+  // Deleting a swap simply removes the temp session — since the recurring
+  // class was never actually touched, it reappears on its normal date on
+  // its own, with nothing left to "restore".
+  function deleteTempSession(sessionId, dateISO) {
+    const sk = sessionKey(dateISO, sessionId);
+    const hasAttendance = !!attendance[sk];
+    const msg = hasAttendance
+      ? 'سيتم حذف هذه الحصة المؤقتة وكل ما سُجّل فيها من بيانات حضور. هل تريد المتابعة؟'
+      : 'سيتم حذف هذه الحصة المؤقتة. هل تريد المتابعة؟';
+    if (!confirm(msg)) return;
+
+    tempSessions = tempSessions.filter(t => t.id !== sessionId);
+    saveTempSessions();
+    if (hasAttendance) {
+      delete attendance[sk];
+      saveAttendance();
+    }
+    draftBySession.delete(draftMapKey(dateISO, sessionId));
+    dirtySessions.delete(draftMapKey(dateISO, sessionId));
+    render();
   }
 
   // ---------- Attendance data helpers ----------
@@ -250,8 +328,7 @@
   // single attendance click can refresh just this small block instead of
   // re-rendering (and scroll-jumping) the whole page.
   function computeDaySummary(dateISO) {
-    const weekday = isoToDate(dateISO).getDay();
-    const sessions = scheduleClasses.filter(c => c.day === weekday);
+    const sessions = effectiveSessionsForDate(dateISO);
     let present = 0, late = 0, absent = 0;
     sessions.forEach(session => {
       const className = (session.room || '').trim();
@@ -373,9 +450,7 @@
       return;
     }
 
-    const sessions = scheduleClasses
-      .filter(c => c.day === weekday)
-      .sort((a, b) => a.periodKey - b.periodKey);
+    const sessions = effectiveSessionsForDate(dateISO);
 
     noScheduleState.hidden = sessions.length > 0;
     if (sessions.length === 0) {
@@ -413,11 +488,52 @@
     chevron.textContent = '◀';
     header.appendChild(chevron);
 
+    if (session.type) {
+      const badge = document.createElement('span');
+      badge.className = 'temp-badge';
+      badge.textContent = session.type === 'swap' ? '🔁 تبديل' : '➕ تغطية';
+      header.appendChild(badge);
+    }
+
     header.insertAdjacentHTML('beforeend', `
       <span class="session-subject">${escapeHTML(session.subject)}</span>
       <span class="session-meta">${escapeHTML(isolateLTR(session.room || ''))}</span>
       <span class="session-meta">${escapeHTML(periodLabelFor(session.periodKey))}</span>
     `);
+
+    if (session.type === 'swap' && session.sourceDate) {
+      const fromSpan = document.createElement('span');
+      fromSpan.className = 'session-meta';
+      fromSpan.textContent = `(بدل حصة ${session.sourceDate})`;
+      header.appendChild(fromSpan);
+    }
+
+    if (!session.type) {
+      const swapBtn = document.createElement('button');
+      swapBtn.type = 'button';
+      swapBtn.className = 'btn btn-ghost btn-small';
+      swapBtn.textContent = '🔁 تبديل الحصة';
+      swapBtn.title = 'نقل هذه الحصة لمرة واحدة إلى تاريخ آخر';
+      swapBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSwapModal(session, dateISO);
+      });
+      header.appendChild(swapBtn);
+    } else {
+      const deleteTempBtn = document.createElement('button');
+      deleteTempBtn.type = 'button';
+      deleteTempBtn.className = 'btn btn-ghost btn-small';
+      deleteTempBtn.textContent = session.type === 'swap' ? '↩ إلغاء التبديل' : '🗑 حذف الحصة';
+      deleteTempBtn.title = session.type === 'swap'
+        ? 'إلغاء التبديل وإرجاع الحصة الأصلية إلى يومها'
+        : 'حذف هذه الحصة المؤقتة';
+      deleteTempBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTempSession(session.id, dateISO);
+      });
+      header.appendChild(deleteTempBtn);
+    }
+
     if (roster && roster.length > 0) {
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
@@ -1179,7 +1295,296 @@
     });
   }
 
+  // ---------- Custom dropdown (used only by إضافة حصة لهذا اليوم below) ----------
+  // Same widget as assets/app.js's class editor — a plain <select>'s open
+  // option list is native OS chrome on mobile and ignores the page's RTL
+  // direction internally, which no CSS can reach into and fix.
+  function makeCustomSelect(id) {
+    const root = document.getElementById(id);
+    root.classList.add('custom-select');
+    root.innerHTML = '';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger';
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'custom-select-value';
+    const arrow = document.createElement('span');
+    arrow.className = 'custom-select-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    trigger.appendChild(valueSpan);
+    trigger.appendChild(arrow);
+    root.appendChild(trigger);
+
+    const optionsList = document.createElement('div');
+    optionsList.className = 'custom-select-options';
+    optionsList.hidden = true;
+    root.appendChild(optionsList);
+
+    let entries = [];
+    let internalValue = '';
+
+    function renderOptions() {
+      optionsList.innerHTML = '';
+      entries.forEach(entry => {
+        const opt = document.createElement('button');
+        opt.type = 'button';
+        opt.className = 'custom-select-option';
+        if (entry.disabled) opt.classList.add('placeholder-option');
+        if (entry.value === internalValue) opt.classList.add('active');
+        opt.disabled = !!entry.disabled;
+
+        const label = document.createElement('span');
+        label.className = 'custom-select-option-label';
+        label.textContent = entry.label;
+        const radio = document.createElement('span');
+        radio.className = 'custom-select-option-radio';
+        opt.appendChild(label);
+        opt.appendChild(radio);
+
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setValue(entry.value);
+          closeList();
+        });
+        optionsList.appendChild(opt);
+      });
+    }
+
+    function updateTriggerLabel() {
+      const entry = entries.find(e => e.value === internalValue);
+      valueSpan.textContent = entry ? (entry.shortLabel || entry.label) : '';
+      valueSpan.classList.toggle('placeholder', !entry || !!entry.disabled);
+    }
+
+    function setValue(v, opts) {
+      internalValue = String(v);
+      updateTriggerLabel();
+      renderOptions();
+      if (!opts || !opts.silent) root.dispatchEvent(new Event('change'));
+    }
+
+    function closeList() {
+      optionsList.hidden = true;
+      root.classList.remove('open');
+    }
+    root._closeCustomSelect = closeList;
+
+    function openList() {
+      document.querySelectorAll('.custom-select.open').forEach(el => {
+        if (el !== root) el._closeCustomSelect();
+      });
+      const rect = trigger.getBoundingClientRect();
+      optionsList.style.top = `${rect.bottom + 4}px`;
+      optionsList.style.left = `${rect.left}px`;
+      optionsList.style.width = `${rect.width}px`;
+      const available = window.innerHeight - rect.bottom - 16;
+      optionsList.style.maxHeight = `${Math.max(120, Math.min(260, available))}px`;
+      optionsList.hidden = false;
+      root.classList.add('open');
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (optionsList.hidden) openList(); else closeList();
+    });
+
+    Object.defineProperty(root, 'value', {
+      get() { return internalValue; },
+      set(v) { setValue(v, { silent: true }); },
+    });
+
+    root.setEntries = function (newEntries, currentValue) {
+      entries = newEntries;
+      internalValue = currentValue !== undefined && currentValue !== null
+        ? String(currentValue)
+        : (entries[0] ? entries[0].value : '');
+      updateTriggerLabel();
+      renderOptions();
+    };
+
+    root.populate = function (options, currentValue, placeholderLabel, placeholderDisabled, wrapBidi) {
+      const values = [...options];
+      if (currentValue && !values.includes(currentValue)) values.unshift(currentValue);
+      const optionEntries = values.map(v => ({ value: v, label: wrapBidi ? isolateLTR(v) : v, disabled: false }));
+      const placeholderEntry = { value: '', label: placeholderLabel, disabled: !!placeholderDisabled };
+      root.setEntries([placeholderEntry, ...optionEntries], currentValue || '');
+    };
+
+    return root;
+  }
+
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.custom-select.open').forEach(el => {
+      if (!el.contains(e.target)) el._closeCustomSelect();
+    });
+  });
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('.custom-select.open').forEach(el => el._closeCustomSelect());
+  });
+
+  // ---------- Swap a session to a different date (تبديل) ----------
+  const swapModal = document.getElementById('swapModal');
+  const swapForm = document.getElementById('swapForm');
+  const swapDateInput = document.getElementById('swapDateInput');
+  const swapHintText = document.getElementById('swapHintText');
+  const closeSwapModalBtn = document.getElementById('closeSwapModalBtn');
+  const cancelSwapBtn = document.getElementById('cancelSwapBtn');
+  let swapSource = null; // { id, subject, room, periodKey, sourceDate }
+  let swapOpenedSnapshot = '';
+
+  function swapFormSnapshot() {
+    return swapDateInput.value;
+  }
+
+  function openSwapModal(session, dateISO) {
+    swapSource = {
+      id: session.id, subject: session.subject, room: session.room,
+      periodKey: session.periodKey, sourceDate: dateISO,
+    };
+    swapHintText.textContent = `ستُنقل حصة "${session.subject}"${session.room ? ` (${isolateLTR(session.room)})` : ''} من هذا اليوم إلى تاريخ آخر — بنفس المادة والصف والحصة. تختفي من ${dateISO} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
+    swapDateInput.value = '';
+    swapDateInput.min = todayISO();
+    swapModal.hidden = false;
+    swapOpenedSnapshot = swapFormSnapshot();
+  }
+
+  function closeSwapModal() {
+    swapModal.hidden = true;
+    swapForm.reset();
+    swapSource = null;
+  }
+
+  function closeSwapModalIfConfirmed() {
+    if (swapFormSnapshot() !== swapOpenedSnapshot) {
+      if (!confirm('لديك تاريخ مُدخل لم يُحفظ. إذا أغلقت الآن، ستُفقد هذه العملية. هل تريد المتابعة؟')) return;
+    }
+    closeSwapModal();
+  }
+
+  closeSwapModalBtn.addEventListener('click', closeSwapModalIfConfirmed);
+  cancelSwapBtn.addEventListener('click', closeSwapModalIfConfirmed);
+
+  swapForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!swapSource) return;
+    const targetDate = swapDateInput.value;
+    if (!targetDate) {
+      alert('اختر التاريخ الجديد أولًا.');
+      return;
+    }
+    if (targetDate === swapSource.sourceDate) {
+      alert('اخترت نفس تاريخ الحصة الأصلية — اختر تاريخًا مختلفًا.');
+      return;
+    }
+    const targetWeekday = isoToDate(targetDate).getDay();
+    if (!DAYS.some(d => d.key === targetWeekday)) {
+      alert('لا يمكن جدولة حصة في يوم عطلة نهاية الأسبوع (الجمعة أو السبت).');
+      return;
+    }
+    if (periodTakenOnDate(targetDate, swapSource.periodKey, null)) {
+      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا آخر.');
+      return;
+    }
+    tempSessions.push({
+      id: uid(),
+      type: 'swap',
+      date: targetDate,
+      periodKey: swapSource.periodKey,
+      subject: swapSource.subject,
+      room: swapSource.room,
+      sourceClassId: swapSource.id,
+      sourceDate: swapSource.sourceDate,
+    });
+    saveTempSessions();
+    closeSwapModal();
+    render();
+  });
+
+  // ---------- Add a one-off cover session (تغطية) ----------
+  const coverModal = document.getElementById('coverModal');
+  const coverForm = document.getElementById('coverForm');
+  const addCoverBtn = document.getElementById('addCoverBtn');
+  const closeCoverModalBtn = document.getElementById('closeCoverModalBtn');
+  const cancelCoverBtn = document.getElementById('cancelCoverBtn');
+  const coverSubjectSelect = makeCustomSelect('coverSubject');
+  const coverRoomSelect = makeCustomSelect('coverRoom');
+  const coverPeriodSelect = makeCustomSelect('coverPeriod');
+
+  coverPeriodSelect.setEntries(PERIODS.map(p => ({
+    value: String(p.key),
+    label: `${p.label} (${isolateLTR(`${to12(p.start)} - ${to12(p.end)}`)})`,
+    shortLabel: p.label,
+  })));
+
+  coverSubjectSelect.addEventListener('change', () => {
+    const validRooms = roomsForSubject(coverSubjectSelect.value);
+    const roomToKeep = validRooms.includes(coverRoomSelect.value) ? coverRoomSelect.value : '';
+    coverRoomSelect.populate(validRooms, roomToKeep, '— غير معيّن —', false, true);
+  });
+
+  let coverOpenedSnapshot = '';
+  function coverFormSnapshot() {
+    return [coverSubjectSelect.value, coverRoomSelect.value, coverPeriodSelect.value].join('|');
+  }
+
+  function openCoverModal() {
+    coverSubjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
+    coverRoomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
+    coverPeriodSelect.value = String(PERIODS[0].key);
+    coverModal.hidden = false;
+    coverOpenedSnapshot = coverFormSnapshot();
+  }
+
+  function closeCoverModal() {
+    coverModal.hidden = true;
+    coverForm.reset();
+  }
+
+  function closeCoverModalIfConfirmed() {
+    if (coverFormSnapshot() !== coverOpenedSnapshot) {
+      if (!confirm('لديك بيانات مدخلة لم تُحفظ. إذا أغلقت الآن، ستُفقد. هل تريد المتابعة؟')) return;
+    }
+    closeCoverModal();
+  }
+
+  if (addCoverBtn) addCoverBtn.addEventListener('click', openCoverModal);
+  closeCoverModalBtn.addEventListener('click', closeCoverModalIfConfirmed);
+  cancelCoverBtn.addEventListener('click', closeCoverModalIfConfirmed);
+
+  coverForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const subject = coverSubjectSelect.value.trim();
+    const room = coverRoomSelect.value.trim();
+    const periodKey = Number(coverPeriodSelect.value);
+    if (!subject) {
+      alert('اختر المادة أولًا.');
+      return;
+    }
+    const dateISO = datePicker.value || todayISO();
+    if (periodTakenOnDate(dateISO, periodKey, null)) {
+      alert('هناك حصة أخرى في هذا الوقت بهذا اليوم. اختر حصة أخرى أو عدّل الحصة الموجودة.');
+      return;
+    }
+    tempSessions.push({
+      id: uid(),
+      type: 'cover',
+      date: dateISO,
+      periodKey,
+      subject, room,
+      sourceClassId: null,
+      sourceDate: null,
+    });
+    saveTempSessions();
+    closeCoverModal();
+    render();
+  });
+
   // ---------- Init ----------
+  // A grid badge on the schedule page (index.html) links straight to that
+  // temp session's exact date instead of leaving the teacher to find it.
+  const dateParam = new URLSearchParams(location.search).get('date');
+  if (dateParam) datePicker.value = dateParam;
   render();
 
   // Clears only the cached app files (service worker + Cache Storage) so a

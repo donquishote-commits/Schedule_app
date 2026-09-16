@@ -46,6 +46,7 @@
       <span id="holidayToggleIcon" class="holiday-toggle-icon"></span>
       <span id="holidayToggleText"></span>
     </button>
+    <button id="addCoverBtn" type="button" class="btn btn-ghost" title="إضافة حصة تغطية لمرة واحدة في هذا اليوم">➕ إضافة حصة لهذا اليوم</button>
   </div>
 
   <div id="daySummary" class="day-summary" hidden></div>
@@ -101,6 +102,57 @@
         <div class="spacer"></div>
         <button type="button" id="cancelTermsBtn" class="btn btn-ghost">إلغاء</button>
         <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Swap a single occurrence of a recurring class to a different date --
+     the class disappears from its normal day just for that date, and
+     reappears on the new date, marked as a temporary session. -->
+<div id="swapModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>تبديل الحصة</h2>
+      <button type="button" class="icon-btn" id="closeSwapModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="swapForm">
+      <p class="hint-text" id="swapHintText"></p>
+      <label class="form-field">التاريخ الجديد
+        <input type="date" id="swapDateInput" required>
+      </label>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelSwapBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">تبديل</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add a one-off session (covering for a colleague, etc.) that only
+     exists on the day it's added for — never touches the weekly schedule. -->
+<div id="coverModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>إضافة حصة تغطية</h2>
+      <button type="button" class="icon-btn" id="closeCoverModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="coverForm">
+      <p class="hint-text">حصة إضافية لمرة واحدة في هذا اليوم فقط — لن تُضاف إلى جدولك الأسبوعي الثابت.</p>
+      <div class="form-field">المادة
+        <div id="coverSubject"></div>
+      </div>
+      <div class="form-field">الصف
+        <div id="coverRoom"></div>
+      </div>
+      <div class="form-field">الحصة
+        <div id="coverPeriod"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelCoverBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">إضافة</button>
       </div>
     </form>
   </div>

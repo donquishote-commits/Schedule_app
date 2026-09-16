@@ -6,6 +6,7 @@
   const ATTENDANCE_KEY = 'schedule_app_attendance_v1';
   const REPORTS_KEY = 'schedule_app_reports_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
+  const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
 
   const PARTICIPATION_SCALE = { excellent: 1, normal: 2, none: 3 };
   const PARTICIPATION_LABELS = { 1: 'ممتاز', 2: 'متوسط', 3: 'ضعيف' };
@@ -30,6 +31,7 @@
   }
 
   const scheduleClasses = loadJSON(SCHEDULE_KEY, []);
+  const tempSessions = loadJSON(TEMP_SESSIONS_KEY, []);
   const students = loadJSON(STUDENTS_KEY, {});
   const attendance = loadJSON(ATTENDANCE_KEY, {});
   const terms = loadJSON(TERMS_KEY, { term1Start: '', term1End: '', term2Start: '', term2End: '' });
@@ -70,8 +72,13 @@
     return undefined;
   }
 
+  // Includes temp session ids (تبديل/تغطية) for this room too — those are
+  // recorded under their own id, not a recurring class's, so without this
+  // their attendance would be silently invisible in reports.
   function classIdsForRoom(className) {
-    return scheduleClasses.filter(c => (c.room || '').trim() === className).map(c => c.id);
+    const regularIds = scheduleClasses.filter(c => (c.room || '').trim() === className).map(c => c.id);
+    const tempIds = tempSessions.filter(t => (t.room || '').trim() === className).map(t => t.id);
+    return [...regularIds, ...tempIds];
   }
 
   function aggregateForStudent(className, studentName) {
