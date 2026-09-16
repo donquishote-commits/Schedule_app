@@ -792,7 +792,8 @@
     timerStatusEl = null;
   }
   closeToolsModalBtn.addEventListener('click', closeToolsModal);
-  toolsModal.addEventListener('click', (e) => { if (e.target === toolsModal) closeToolsModal(); });
+  // Clicking the backdrop no longer closes the modal — only the explicit
+  // close button does, so a stray tap doesn't interrupt a running timer.
 
   function openToolsModal(session, roster, draft) {
     // Only students marked حاضر/متأخر today take part — absentees can't

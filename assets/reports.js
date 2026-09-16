@@ -693,9 +693,8 @@
 
   document.getElementById('cancelNoteBtn').addEventListener('click', closeNoteModal);
   document.getElementById('closeNoteModalBtn').addEventListener('click', closeNoteModal);
-  noteModal.addEventListener('click', (e) => {
-    if (e.target === noteModal) closeNoteModal();
-  });
+  // Clicking the backdrop no longer closes the modal — only the explicit
+  // close/cancel buttons do, so a stray tap outside can't discard a note.
 
   // ---------- Init ----------
   render();

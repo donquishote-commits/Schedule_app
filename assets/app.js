@@ -615,9 +615,8 @@
   });
   document.getElementById('closeModalBtn').addEventListener('click', closeModalIfConfirmed);
   document.getElementById('cancelBtn').addEventListener('click', closeModalIfConfirmed);
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModalIfConfirmed();
-  });
+  // Clicking the backdrop no longer closes the modal — only the explicit
+  // close/cancel buttons do, so a stray tap outside can't discard a class.
 
   classForm.addEventListener('submit', (e) => {
     e.preventDefault();

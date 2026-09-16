@@ -260,7 +260,8 @@
     profileModalBody.innerHTML = '';
   }
   closeProfileModalBtn.addEventListener('click', closeProfileModal);
-  profileModal.addEventListener('click', (e) => { if (e.target === profileModal) closeProfileModal(); });
+  // Clicking the backdrop no longer closes the modal — only the explicit
+  // close button does, for consistency with the app's other modals.
 
   function profileRow(label, value) {
     const row = document.createElement('div');
@@ -571,7 +572,8 @@
   document.getElementById('addClassBtn').addEventListener('click', openModal);
   document.getElementById('closeModalBtn').addEventListener('click', closeModalIfConfirmed);
   document.getElementById('cancelBtn').addEventListener('click', closeModalIfConfirmed);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModalIfConfirmed(); });
+  // Clicking the backdrop no longer closes the modal — only the explicit
+  // close/cancel buttons do, so a stray tap outside can't discard a name.
 
   classForm.addEventListener('submit', (e) => {
     e.preventDefault();
