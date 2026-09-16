@@ -179,9 +179,12 @@
   }
   const tempSessions = loadTempSessions();
 
-  function todayISO() {
-    const d = new Date();
+  function dateToISO(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function todayISO() {
+    return dateToISO(new Date());
   }
 
   function isoToDate(iso) {
@@ -210,6 +213,17 @@
       if (!best || t.date < best.date) best = t;
     });
     return best;
+  }
+
+  // True if THIS week's upcoming occurrence of this recurring class has
+  // been swapped away to another date — so the grid doesn't show it both
+  // in its normal cell and in the swap's target cell at the same time.
+  // Only covers the nearest occurrence (today or later); a swap made for
+  // a date further out than that isn't reflected here, same limitation as
+  // nearestUpcomingTempSession only ever surfacing the soonest match.
+  function isNextOccurrenceSwappedAway(classId, dayKey) {
+    const nextDate = dateToISO(nextDateForWeekday(dayKey));
+    return tempSessions.some(t => t.type === 'swap' && t.sourceClassId === classId && t.sourceDate === nextDate);
   }
 
   // ---------- Grid rendering ----------
@@ -278,7 +292,8 @@
         if (tempMatch) {
           td.appendChild(renderTempBlock(tempMatch));
         } else if (existing) {
-          td.appendChild(renderClassBlock(existing));
+          const swappedAway = isNextOccurrenceSwappedAway(existing.id, day.key);
+          td.appendChild(renderClassBlock(existing, { swappedAway }));
         } else {
           td.addEventListener('click', () => openAddModal(day.key, period.key));
         }
@@ -311,9 +326,18 @@
     window.addEventListener('resize', centerBreakLabels);
   }
 
-  function renderClassBlock(c) {
+  // opts.swappedAway marks that this week's upcoming occurrence has been
+  // moved elsewhere via تبديل — still shown (it's the fixed weekly
+  // schedule, unaffected week to week) but faded with a 🔁 marker instead
+  // of duplicating the class in two cells at once.
+  function renderClassBlock(c, opts) {
+    const swappedAway = !!(opts && opts.swappedAway);
     const block = document.createElement('div');
     block.className = 'class-block';
+    if (swappedAway) {
+      block.classList.add('class-block-swapped-away');
+      block.title = 'حصتك القادمة بُدِّلت لتاريخ آخر هذا الأسبوع — لا تزال جزءًا من جدولك الثابت وترجع تلقائيًا الأسبوع القادم.';
+    }
     // Always computed live from the subject, never read from storage —
     // so retuning the palette or fixing an old entry's subject instantly
     // shows the right color everywhere, with nothing to go stale.
@@ -324,7 +348,7 @@
 
     const subject = document.createElement('span');
     subject.className = 'subject';
-    subject.textContent = c.subject;
+    subject.textContent = swappedAway ? `🔁 ${c.subject}` : c.subject;
     block.appendChild(subject);
 
     if (c.room) {

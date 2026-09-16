@@ -289,6 +289,10 @@ main {
   min-width: 0;
 }
 
+.class-block-swapped-away {
+  opacity: 0.55;
+}
+
 .class-block .note-dot {
   position: absolute;
   top: 4px;
