@@ -189,11 +189,12 @@
     return new Date(y, m - 1, d);
   }
 
+  // No weekday name here — the grid cell's own column already shows
+  // that; this only needs to disambiguate which occurrence of it.
   const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   function formatArabicDateShort(iso) {
     const d = isoToDate(iso);
-    const dayInfo = DAYS.find(x => x.key === d.getDay());
-    return `${dayInfo ? dayInfo.label : ''} ${d.getDate()} ${ARABIC_MONTHS[d.getMonth()]}`;
+    return `${d.getDate()} ${ARABIC_MONTHS[d.getMonth()]}`;
   }
 
   // The nearest upcoming (today or later) temp session for this exact
@@ -348,31 +349,24 @@
 
   // Managed from صفحة المتابعة اليومية only — clicking this jumps straight
   // to that exact date there instead of leaving the teacher to find it.
+  // Kept to the same two-line shape as renderClassBlock (subject, meta) so
+  // it fits the grid's fixed row height instead of stretching it.
   function renderTempBlock(t) {
     const block = document.createElement('div');
     block.className = 'swap-block';
 
-    const iconLine = document.createElement('span');
-    iconLine.className = 'swap-icon';
-    iconLine.textContent = t.type === 'swap' ? '🔁 تبديل' : '➕ تغطية';
-    block.appendChild(iconLine);
-
     const subject = document.createElement('span');
     subject.className = 'subject';
-    subject.textContent = t.subject;
+    subject.textContent = `${t.type === 'swap' ? '🔁' : '➕'} ${t.subject}`;
     block.appendChild(subject);
 
-    if (t.room) {
-      const meta = document.createElement('span');
-      meta.className = 'meta';
-      meta.textContent = isolateLTR(t.room);
-      block.appendChild(meta);
-    }
-
-    const dateSpan = document.createElement('span');
-    dateSpan.className = 'swap-date';
-    dateSpan.textContent = formatArabicDateShort(t.date);
-    block.appendChild(dateSpan);
+    const metaParts = [];
+    if (t.room) metaParts.push(isolateLTR(t.room));
+    metaParts.push(formatArabicDateShort(t.date));
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = metaParts.join(' — ');
+    block.appendChild(meta);
 
     block.addEventListener('click', (e) => {
       e.stopPropagation();

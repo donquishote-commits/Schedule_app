@@ -322,12 +322,7 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
   cursor: pointer;
-}
-.swap-block .swap-icon {
-  font-size: 0.74rem;
-  font-weight: 600;
 }
 .swap-block .subject {
   font-weight: 700;
@@ -337,16 +332,12 @@ main {
   min-width: 0;
 }
 .swap-block .meta {
-  font-size: 0.72rem;
   opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.72rem;
   min-width: 0;
-}
-.swap-block .swap-date {
-  font-size: 0.66rem;
-  opacity: 0.85;
 }
 
 /* Modal */
