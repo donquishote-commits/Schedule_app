@@ -782,7 +782,13 @@
         if (i === 1) th.className = 'period-col-header attendance-name-col';
 
         if (FOLDABLE_COLUMNS.has(i)) {
-          th.classList.add('column-fold-header');
+          // The flex layout for label+toggle has to live on an inner div,
+          // never on the <th> itself — display:flex on a table header
+          // cell knocks it out of the table's own cell layout entirely
+          // (it stops behaving as a column and stacks in normal flow
+          // instead), which is exactly what broke this the first time.
+          const inner = document.createElement('div');
+          inner.className = 'column-fold-header';
           const labelSpan = document.createElement('span');
           labelSpan.textContent = label;
           const toggleBtn = document.createElement('button');
@@ -802,8 +808,9 @@
             table.classList.toggle(colClass, colFolded);
             updateToggle();
           });
-          th.appendChild(labelSpan);
-          th.appendChild(toggleBtn);
+          inner.appendChild(labelSpan);
+          inner.appendChild(toggleBtn);
+          th.appendChild(inner);
         } else {
           th.textContent = label;
         }
