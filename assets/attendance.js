@@ -522,7 +522,7 @@
       const badgeIcon = document.createElement('span');
       badgeIcon.textContent = session.type === 'swap' ? '🔁' : '➕';
       const badgeText = document.createElement('span');
-      badgeText.textContent = session.type === 'swap' ? 'تبديل' : 'تغطية';
+      badgeText.textContent = session.type === 'swap' ? 'تبديل' : 'احتياط';
       badge.appendChild(badgeIcon);
       badge.appendChild(badgeText);
       titleRow.appendChild(badge);
@@ -1664,7 +1664,7 @@
   // button on a cover session's card) to edit that session's fields.
   function openCoverModal(existingSession) {
     editingCoverId = existingSession ? existingSession.id : null;
-    coverModalTitle.textContent = existingSession ? 'تعديل حصة تغطية' : 'إضافة حصة تغطية';
+    coverModalTitle.textContent = existingSession ? 'تعديل حصة احتياط' : 'إضافة حصة احتياط';
     coverSubmitBtn.textContent = existingSession ? 'حفظ' : 'إضافة';
     const subject = existingSession ? existingSession.subject : '';
     coverSubjectSelect.populate(SUBJECTS, subject, 'اختر المادة', true);

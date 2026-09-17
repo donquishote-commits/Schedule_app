@@ -539,9 +539,9 @@
   }
 
   function openTempDetailsModal(t) {
-    tempDetailsTitle.textContent = t.type === 'swap' ? 'تفاصيل حصة مبدّلة' : 'تفاصيل حصة تغطية';
+    tempDetailsTitle.textContent = t.type === 'swap' ? 'تفاصيل حصة مبدّلة' : 'تفاصيل حصة احتياط';
     tempDetailsBody.innerHTML = '';
-    addDetailRow('النوع', t.type === 'swap' ? '🔁 تبديل' : '➕ تغطية');
+    addDetailRow('النوع', t.type === 'swap' ? '🔁 تبديل' : '➕ احتياط');
     addDetailRow('المادة', t.subject);
     addDetailRow('الصف', t.room ? isolateLTR(t.room) : '— غير معيّن —');
     addDetailRow('الحصة', periodLabelFor(t.periodKey));
@@ -622,7 +622,7 @@
     coverSubjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
     coverRoomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
     coverTeacherInput.value = '';
-    coverHintText.textContent = `إضافة حصة تغطية ليوم ${formatArabicFullDate(dateISO)} — ${periodLabelFor(periodKey)}`;
+    coverHintText.textContent = `إضافة حصة احتياط ليوم ${formatArabicFullDate(dateISO)} — ${periodLabelFor(periodKey)}`;
     coverModal.hidden = false;
     coverOpenedSnapshot = coverFormSnapshot();
   }
