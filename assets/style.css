@@ -1163,6 +1163,22 @@ body.zoomed-session main {
   body.zoomed-session .topbar h1 {
     font-size: 1.05rem;
   }
+
+  /* The gear button has to stay pinned to the same corner regardless of
+     the title's length or how many nav links there are — .topbar-top
+     and .topbar-actions are only wrapper divs for grouping in markup,
+     not meaningful boxes of their own, so display:contents dissolves
+     them and lets their children (title, gear, and each nav link) sit
+     as direct siblings in one flex row; ordering the gear last then
+     pins it to the row's true far end (the left edge, in this RTL
+     layout) no matter what else is on the line. */
+  body.zoomed-session .topbar-top,
+  body.zoomed-session .topbar-actions {
+    display: contents;
+  }
+  body.zoomed-session .menu-wrap {
+    order: 99;
+  }
 }
 
 .temp-badge {
@@ -1214,7 +1230,7 @@ body.zoomed-session main {
 }
 
 .attendance-name-col {
-  width: 130px;
+  width: 160px;
   white-space: normal;
   border-left: 2px solid var(--primary) !important;
 }
