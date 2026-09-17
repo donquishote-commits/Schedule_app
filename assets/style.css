@@ -1249,7 +1249,7 @@ body.zoomed-session main {
   width: 160px;
   white-space: normal;
   border-left: 2px solid var(--primary) !important;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 /* .period-label/.period-col-header (reused here for the sticky effect)
@@ -1265,7 +1265,7 @@ body.zoomed-session main {
 .attendance-number-col {
   width: 26px;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   position: sticky;
