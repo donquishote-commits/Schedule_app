@@ -366,7 +366,7 @@
           const swappedAway = isClassSwappedAwayOnDate(existing.id, cellDate);
           td.appendChild(renderClassBlock(existing, { swappedAway }));
         } else {
-          td.addEventListener('click', () => openAddModal(day.key, period.key));
+          td.addEventListener('click', () => openCellTypeModal(day.key, period.key, cellDate));
         }
 
         tr.appendChild(td);
@@ -563,6 +563,120 @@
   if (closeTempDetailsModalBtn) closeTempDetailsModalBtn.addEventListener('click', closeTempDetailsModal);
   // Clicking the backdrop doesn't close it — same convention as every
   // other modal in the app.
+
+  // ---------- Empty-cell type chooser (حصة أساسية / حصة تغطية) ----------
+  const cellTypeModal = document.getElementById('cellTypeModal');
+  const cellTypeRegularBtn = document.getElementById('cellTypeRegularBtn');
+  const cellTypeCoverBtn = document.getElementById('cellTypeCoverBtn');
+  const closeCellTypeModalBtn = document.getElementById('closeCellTypeModalBtn');
+
+  let pendingCell = null; // { dayKey, periodKey, dateISO }
+
+  function openCellTypeModal(dayKey, periodKey, dateISO) {
+    pendingCell = { dayKey, periodKey, dateISO };
+    cellTypeModal.hidden = false;
+  }
+
+  function closeCellTypeModal() {
+    cellTypeModal.hidden = true;
+    pendingCell = null;
+  }
+
+  if (closeCellTypeModalBtn) closeCellTypeModalBtn.addEventListener('click', closeCellTypeModal);
+
+  cellTypeRegularBtn.addEventListener('click', () => {
+    const cell = pendingCell;
+    closeCellTypeModal();
+    if (cell) openAddModal(cell.dayKey, cell.periodKey);
+  });
+
+  cellTypeCoverBtn.addEventListener('click', () => {
+    const cell = pendingCell;
+    closeCellTypeModal();
+    if (cell) openCoverModal(cell.dateISO, cell.periodKey);
+  });
+
+  // ---------- Cover session for an empty cell (حصة تغطية) ----------
+  // Same idea as "إضافة حصة لهذا اليوم" بصفحة المتابعة اليومية، لكن
+  // التاريخ والحصة محددين مسبقًا من الخلية المضغوطة، فما يحتاج المستخدم
+  // يختارهم من جديد — فقط المادة والصف واسم الأستاذ الاختياري.
+  const coverModal = document.getElementById('coverModal');
+  const coverForm = document.getElementById('coverForm');
+  const coverHintText = document.getElementById('coverHintText');
+  const coverSubjectSelect = document.getElementById('coverSubject');
+  const coverRoomSelect = document.getElementById('coverRoom');
+  const coverTeacherInput = document.getElementById('coverTeacherInput');
+  const closeCoverModalBtn = document.getElementById('closeCoverModalBtn');
+  const cancelCoverBtn = document.getElementById('cancelCoverBtn');
+
+  let coverTarget = null; // { dateISO, periodKey }
+  let coverOpenedSnapshot = '';
+
+  function coverFormSnapshot() {
+    return [coverSubjectSelect.value, coverRoomSelect.value, coverTeacherInput.value].join('|');
+  }
+
+  function openCoverModal(dateISO, periodKey) {
+    coverTarget = { dateISO, periodKey };
+    coverForm.reset();
+    coverSubjectSelect.populate(SUBJECTS, '', 'اختر المادة', true);
+    coverRoomSelect.populate(roomsForSubject(''), '', '— غير معيّن —', false, true);
+    coverTeacherInput.value = '';
+    coverHintText.textContent = `إضافة حصة تغطية ليوم ${formatArabicFullDate(dateISO)} — ${periodLabelFor(periodKey)}`;
+    coverModal.hidden = false;
+    coverOpenedSnapshot = coverFormSnapshot();
+  }
+
+  function closeCoverModal() {
+    coverModal.hidden = true;
+    coverTarget = null;
+  }
+
+  function closeCoverModalIfConfirmed() {
+    if (coverFormSnapshot() !== coverOpenedSnapshot) {
+      if (!confirm('لديك تعديلات على الحصة لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه التعديلات. هل تريد المتابعة؟')) return;
+    }
+    closeCoverModal();
+  }
+
+  if (closeCoverModalBtn) closeCoverModalBtn.addEventListener('click', closeCoverModalIfConfirmed);
+  if (cancelCoverBtn) cancelCoverBtn.addEventListener('click', closeCoverModalIfConfirmed);
+
+  function saveTempSessions() {
+    localStorage.setItem(TEMP_SESSIONS_KEY, JSON.stringify(tempSessions));
+  }
+
+  makeCustomSelect('coverSubject');
+  makeCustomSelect('coverRoom');
+
+  coverSubjectSelect.addEventListener('change', () => {
+    const validRooms = roomsForSubject(coverSubjectSelect.value);
+    const roomToKeep = validRooms.includes(coverRoomSelect.value) ? coverRoomSelect.value : '';
+    coverRoomSelect.populate(validRooms, roomToKeep, '— غير معيّن —', false, true);
+  });
+
+  if (coverForm) {
+    coverForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!coverTarget) return;
+      if (!coverSubjectSelect.value) {
+        alert('اختر المادة أولًا.');
+        return;
+      }
+      tempSessions.push({
+        id: uid(),
+        type: 'cover',
+        date: coverTarget.dateISO,
+        periodKey: coverTarget.periodKey,
+        subject: coverSubjectSelect.value,
+        room: coverRoomSelect.value || '',
+        teacherName: coverTeacherInput.value.trim() || null,
+      });
+      saveTempSessions();
+      closeCoverModal();
+      renderGrid();
+    });
+  }
 
   // ---------- Modal ----------
   const modal = document.getElementById('classModal');

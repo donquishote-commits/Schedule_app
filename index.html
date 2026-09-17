@@ -109,6 +109,57 @@
   </div>
 </div>
 
+<!-- First step when tapping an empty grid cell — أساسية goes to the normal
+     recurring-class form above; تغطية opens the one-off form below,
+     pre-scoped to that exact cell's date/period. -->
+<div id="cellTypeModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>نوع الحصة</h2>
+      <button type="button" class="icon-btn" id="closeCellTypeModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <div class="cell-type-choices">
+      <button type="button" id="cellTypeRegularBtn" class="cell-type-choice">
+        <span class="cell-type-icon">📘</span>
+        <span class="cell-type-label">حصة أساسية</span>
+      </button>
+      <button type="button" id="cellTypeCoverBtn" class="cell-type-choice">
+        <span class="cell-type-icon">➕</span>
+        <span class="cell-type-label">حصة تغطية</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- One-off cover session for a specific empty cell — same idea as
+     "إضافة حصة لهذا اليوم" في صفحة المتابعة اليومية، لكن التاريخ والحصة
+     محددين مسبقًا من الخلية اللي ضُغط عليها، فما تحتاج تختارهم من جديد. -->
+<div id="coverModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>إضافة حصة تغطية</h2>
+      <button type="button" class="icon-btn" id="closeCoverModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="coverForm">
+      <p class="hint-text" id="coverHintText"></p>
+      <div class="form-field">المادة
+        <div id="coverSubject"></div>
+      </div>
+      <div class="form-field">الصف
+        <div id="coverRoom"></div>
+      </div>
+      <label class="form-field">اسم الأستاذ — اختياري
+        <input type="text" id="coverTeacherInput" placeholder="مثلاً: أ. محمد العتيبي">
+      </label>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelCoverBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">إضافة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Read-only details for a temporary session (تبديل/تغطية) cell in the
      grid — created and managed from صفحة المتابعة اليومية, this just
      shows what it is before jumping there to change anything. -->
