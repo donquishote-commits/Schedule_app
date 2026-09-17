@@ -397,10 +397,13 @@
     });
   }
 
-  // Which sessions are expanded, by schedule id — collapsed by default,
-  // remembered across date navigation (so "الفلسفة" stays open/closed as
-  // you flip between different Sundays, say).
-  const expandedSessions = new Set();
+  // Which single session (if any) is currently shown full-screen — opening
+  // a session no longer expands it in place, it takes over the whole page
+  // (page chrome hidden via the zoomed-session body class) so the roster
+  // table gets the full screen width instead of squeezing into a narrow
+  // accordion row. Only one at a time; resets to the compact list whenever
+  // the date changes.
+  let zoomedSessionId = null;
 
   // Every interaction re-renders the whole day from scratch, which would
   // otherwise reset the page (and each session table's horizontal scroll)
@@ -438,6 +441,8 @@
     updateHolidayToggleLabel(dateISO);
 
     if (isHoliday(dateISO)) {
+      zoomedSessionId = null;
+      document.body.classList.remove('zoomed-session');
       daySummaryEl.hidden = true;
       sessionsContainer.innerHTML = '';
       noScheduleState.hidden = true;
@@ -450,6 +455,8 @@
     holidayStateEl.hidden = true;
 
     if (isOutsideTerms(dateISO)) {
+      zoomedSessionId = null;
+      document.body.classList.remove('zoomed-session');
       daySummaryEl.hidden = true;
       sessionsContainer.innerHTML = '';
       noScheduleState.hidden = true;
@@ -460,10 +467,12 @@
     }
     termOutOfRangeStateEl.hidden = true;
 
-    renderDaySummary(dateISO);
     sessionsContainer.innerHTML = '';
 
     if (!dayInfo) {
+      zoomedSessionId = null;
+      document.body.classList.remove('zoomed-session');
+      renderDaySummary(dateISO);
       noScheduleState.hidden = false;
       noScheduleState.textContent = 'لا توجد حصص في عطلة نهاية الأسبوع.';
       currentRenderedDate = dateISO;
@@ -472,44 +481,134 @@
 
     const sessions = effectiveSessionsForDate(dateISO);
 
-    noScheduleState.hidden = sessions.length > 0;
     if (sessions.length === 0) {
+      zoomedSessionId = null;
+      document.body.classList.remove('zoomed-session');
+      renderDaySummary(dateISO);
+      noScheduleState.hidden = false;
       noScheduleState.textContent = 'لا توجد حصص مجدولة في هذا اليوم.';
       currentRenderedDate = dateISO;
       return;
     }
+    noScheduleState.hidden = true;
 
-    sessions.forEach(session => {
-      sessionsContainer.appendChild(renderSessionCard(session, dateISO));
-    });
+    const zoomIdx = zoomedSessionId ? sessions.findIndex(s => s.id === zoomedSessionId) : -1;
+
+    if (zoomIdx !== -1) {
+      document.body.classList.add('zoomed-session');
+      sessionsContainer.appendChild(renderZoomedSession(sessions, zoomIdx, dateISO));
+    } else {
+      zoomedSessionId = null;
+      document.body.classList.remove('zoomed-session');
+      renderDaySummary(dateISO);
+      sessions.forEach(session => {
+        sessionsContainer.appendChild(renderCompactSessionRow(session, dateISO));
+      });
+    }
 
     currentRenderedDate = dateISO;
   }
 
-  function renderSessionCard(session, dateISO) {
-    const card = document.createElement('div');
-    card.className = 'session-card';
-    if (expandedSessions.has(session.id)) card.classList.add('open');
+  // Shared by the zoomed header — extracted out of the old single
+  // renderSessionCard so the compact list rows (which no longer show any
+  // actions of their own) and the zoomed view both stay in sync from one
+  // definition instead of two copies drifting apart.
+  function buildActionButtons(session, dateISO, roster, draft) {
+    const buttons = [];
 
-    const className = (session.room || '').trim();
-    const roster = students[className];
-    const draft = roster && roster.length > 0 ? getOrCreateDraft(dateISO, session.id, roster) : null;
+    if (!session.type) {
+      const swapBtn = document.createElement('button');
+      swapBtn.type = 'button';
+      swapBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      swapBtn.textContent = '🔁';
+      swapBtn.title = 'تبديل الحصة — نقلها لمرة واحدة إلى تاريخ آخر';
+      swapBtn.setAttribute('aria-label', 'تبديل الحصة');
+      swapBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSwapModal(session, dateISO);
+      });
+      buttons.push(swapBtn);
+    } else {
+      // Editing is cover-only — a swap always mirrors its source class's
+      // subject/room/period exactly, so there's nothing on it to edit;
+      // "cancel" is its only action.
+      if (session.type === 'cover') {
+        const editCoverBtn = document.createElement('button');
+        editCoverBtn.type = 'button';
+        editCoverBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+        editCoverBtn.textContent = '✏️';
+        editCoverBtn.title = 'تعديل بيانات الحصة';
+        editCoverBtn.setAttribute('aria-label', 'تعديل بيانات الحصة');
+        editCoverBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCoverModal(session);
+        });
+        buttons.push(editCoverBtn);
+      }
 
-    const header = document.createElement('div');
-    header.className = 'session-card-header';
-    header.addEventListener('click', () => {
-      if (expandedSessions.has(session.id)) expandedSessions.delete(session.id);
-      else expandedSessions.add(session.id);
-      card.classList.toggle('open');
-    });
+      const deleteTempBtn = document.createElement('button');
+      deleteTempBtn.type = 'button';
+      const isCover = session.type === 'cover';
+      deleteTempBtn.className = 'btn btn-ghost btn-small' + (isCover ? ' icon-btn-round' : '');
+      deleteTempBtn.textContent = isCover ? '🗑' : '↩ إلغاء التبديل';
+      deleteTempBtn.title = isCover
+        ? 'حذف هذه الحصة المؤقتة'
+        : 'إلغاء التبديل وإرجاع الحصة الأصلية إلى يومها';
+      if (isCover) deleteTempBtn.setAttribute('aria-label', 'حذف هذه الحصة المؤقتة');
+      deleteTempBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTempSession(session.id, dateISO);
+      });
+      buttons.push(deleteTempBtn);
+    }
 
+    if (roster && roster.length > 0) {
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn btn-ghost btn-small icon-btn-round copy-absentees-btn';
+      copyBtn.textContent = '📋';
+      copyBtn.title = 'نسخ أسماء الغياب';
+      copyBtn.setAttribute('aria-label', 'نسخ أسماء الغياب');
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyAbsentees(roster, draft, copyBtn);
+      });
+      buttons.push(copyBtn);
+
+      const toolsBtn = document.createElement('button');
+      toolsBtn.type = 'button';
+      toolsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      toolsBtn.textContent = '🎲';
+      toolsBtn.title = 'أدوات الحصة';
+      toolsBtn.setAttribute('aria-label', 'أدوات الحصة');
+      toolsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openToolsModal(session, roster, draft);
+      });
+      buttons.push(toolsBtn);
+
+      const formsBtn = document.createElement('button');
+      formsBtn.type = 'button';
+      formsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      formsBtn.textContent = '🔗';
+      formsBtn.title = 'فتح نموذج تسجيل الغياب';
+      formsBtn.setAttribute('aria-label', 'فتح نموذج تسجيل الغياب');
+      formsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openFormsLink();
+      });
+      buttons.push(formsBtn);
+    }
+
+    return buttons;
+  }
+
+  // Builds the subject/room/period title row shared by the compact list
+  // row and the zoomed header — a plain function instead of yet another
+  // duplicated block, since both need the exact same content.
+  function buildSessionTitleRow(session) {
     const titleRow = document.createElement('div');
     titleRow.className = 'session-card-title-row';
-
-    const chevron = document.createElement('span');
-    chevron.className = 'session-chevron';
-    chevron.textContent = '◀';
-    titleRow.appendChild(chevron);
 
     if (session.type) {
       // Icon and label as separate flex-item spans, not one string with the
@@ -541,100 +640,108 @@
       titleRow.appendChild(fromSpan);
     }
 
-    header.appendChild(titleRow);
+    return titleRow;
+  }
+
+  // The default day view: one tappable row per session, showing only
+  // enough to tell them apart (subject/room/period, and the تبديل/احتياط
+  // badge) — no roster, no actions. Tapping one opens it full-screen via
+  // renderZoomedSession instead of expanding in place, so the roster table
+  // never has to squeeze into a narrow accordion row.
+  function renderCompactSessionRow(session, dateISO) {
+    const row = document.createElement('div');
+    row.className = 'session-card session-row';
+    row.addEventListener('click', () => {
+      zoomedSessionId = session.id;
+      render();
+    });
+
+    const chevron = document.createElement('span');
+    chevron.className = 'session-chevron';
+    chevron.textContent = '◀';
+    row.appendChild(chevron);
+    row.appendChild(buildSessionTitleRow(session));
+
+    return row;
+  }
+
+  // Full-screen focused view for exactly one session — the page's normal
+  // chrome (date bar, day summary, etc.) is hidden via the zoomed-session
+  // body class while this is showing, so the roster table gets the full
+  // screen width instead of competing with everything else for space.
+  // prevBtn/nextBtn step through that day's other sessions without ever
+  // leaving this view — safe to do with no "unsaved changes" check, since
+  // every session's draft lives in draftBySession independently of which
+  // one is currently on screen.
+  function renderZoomedSession(sessions, idx, dateISO) {
+    const session = sessions[idx];
+    const view = document.createElement('div');
+    view.className = 'zoomed-session-view';
+
+    const header = document.createElement('div');
+    header.className = 'zoomed-header';
+
+    const navRow = document.createElement('div');
+    navRow.className = 'zoomed-header-nav';
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+    backBtn.textContent = '✕';
+    backBtn.title = 'رجوع لقائمة الحصص';
+    backBtn.setAttribute('aria-label', 'رجوع لقائمة الحصص');
+    backBtn.addEventListener('click', () => {
+      zoomedSessionId = null;
+      render();
+    });
+    navRow.appendChild(backBtn);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'spacer';
+    navRow.appendChild(spacer);
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+    prevBtn.textContent = '▶';
+    prevBtn.title = 'الحصة السابقة';
+    prevBtn.setAttribute('aria-label', 'الحصة السابقة');
+    prevBtn.disabled = idx === 0;
+    prevBtn.addEventListener('click', () => {
+      zoomedSessionId = sessions[idx - 1].id;
+      render();
+    });
+    navRow.appendChild(prevBtn);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+    nextBtn.textContent = '◀';
+    nextBtn.title = 'الحصة التالية';
+    nextBtn.setAttribute('aria-label', 'الحصة التالية');
+    nextBtn.disabled = idx === sessions.length - 1;
+    nextBtn.addEventListener('click', () => {
+      zoomedSessionId = sessions[idx + 1].id;
+      render();
+    });
+    navRow.appendChild(nextBtn);
+
+    header.appendChild(navRow);
+    header.appendChild(buildSessionTitleRow(session));
+
+    const className = (session.room || '').trim();
+    const roster = students[className];
+    const draft = roster && roster.length > 0 ? getOrCreateDraft(dateISO, session.id, roster) : null;
 
     const actionsRow = document.createElement('div');
     actionsRow.className = 'session-card-actions-row';
-
-    if (!session.type) {
-      const swapBtn = document.createElement('button');
-      swapBtn.type = 'button';
-      swapBtn.className = 'btn btn-ghost btn-small icon-btn-round';
-      swapBtn.textContent = '🔁';
-      swapBtn.title = 'تبديل الحصة — نقلها لمرة واحدة إلى تاريخ آخر';
-      swapBtn.setAttribute('aria-label', 'تبديل الحصة');
-      swapBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openSwapModal(session, dateISO);
-      });
-      actionsRow.appendChild(swapBtn);
-    } else {
-      // Editing is cover-only — a swap always mirrors its source class's
-      // subject/room/period exactly, so there's nothing on it to edit;
-      // "cancel" is its only action.
-      if (session.type === 'cover') {
-        const editCoverBtn = document.createElement('button');
-        editCoverBtn.type = 'button';
-        editCoverBtn.className = 'btn btn-ghost btn-small icon-btn-round';
-        editCoverBtn.textContent = '✏️';
-        editCoverBtn.title = 'تعديل بيانات الحصة';
-        editCoverBtn.setAttribute('aria-label', 'تعديل بيانات الحصة');
-        editCoverBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openCoverModal(session);
-        });
-        actionsRow.appendChild(editCoverBtn);
-      }
-
-      const deleteTempBtn = document.createElement('button');
-      deleteTempBtn.type = 'button';
-      const isCover = session.type === 'cover';
-      deleteTempBtn.className = 'btn btn-ghost btn-small' + (isCover ? ' icon-btn-round' : '');
-      deleteTempBtn.textContent = isCover ? '🗑' : '↩ إلغاء التبديل';
-      deleteTempBtn.title = isCover
-        ? 'حذف هذه الحصة المؤقتة'
-        : 'إلغاء التبديل وإرجاع الحصة الأصلية إلى يومها';
-      if (isCover) deleteTempBtn.setAttribute('aria-label', 'حذف هذه الحصة المؤقتة');
-      deleteTempBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteTempSession(session.id, dateISO);
-      });
-      actionsRow.appendChild(deleteTempBtn);
-    }
-
-    if (roster && roster.length > 0) {
-      const copyBtn = document.createElement('button');
-      copyBtn.type = 'button';
-      copyBtn.className = 'btn btn-ghost btn-small icon-btn-round copy-absentees-btn';
-      copyBtn.textContent = '📋';
-      copyBtn.title = 'نسخ أسماء الغياب';
-      copyBtn.setAttribute('aria-label', 'نسخ أسماء الغياب');
-      copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        copyAbsentees(roster, draft, copyBtn);
-      });
-      actionsRow.appendChild(copyBtn);
-
-      const toolsBtn = document.createElement('button');
-      toolsBtn.type = 'button';
-      toolsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
-      toolsBtn.textContent = '🎲';
-      toolsBtn.title = 'أدوات الحصة';
-      toolsBtn.setAttribute('aria-label', 'أدوات الحصة');
-      toolsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openToolsModal(session, roster, draft);
-      });
-      actionsRow.appendChild(toolsBtn);
-
-      const formsBtn = document.createElement('button');
-      formsBtn.type = 'button';
-      formsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
-      formsBtn.textContent = '🔗';
-      formsBtn.title = 'فتح نموذج تسجيل الغياب';
-      formsBtn.setAttribute('aria-label', 'فتح نموذج تسجيل الغياب');
-      formsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openFormsLink();
-      });
-      actionsRow.appendChild(formsBtn);
-    }
-
+    buildActionButtons(session, dateISO, roster, draft).forEach(btn => actionsRow.appendChild(btn));
     header.appendChild(actionsRow);
-    card.appendChild(header);
+
+    view.appendChild(header);
 
     const body = document.createElement('div');
-    body.className = 'session-card-body';
+    body.className = 'zoomed-body';
 
     if (!roster || roster.length === 0) {
       const msg = document.createElement('div');
@@ -652,14 +759,40 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
+      ['#', 'اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
         const th = document.createElement('th');
         th.textContent = label;
-        if (i === 0) th.className = 'period-col-header attendance-name-col';
+        if (i === 0) th.className = 'attendance-number-col';
+        if (i === 1) th.className = 'period-col-header attendance-name-col';
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
       table.appendChild(thead);
+
+      // Once the teacher is done recording (حاضر/غائب, المشاركة, الدفتر,
+      // السلوك), those columns are rarely touched again — this folds them
+      // away, keeping just the name and the quick-glance stats column, so
+      // more of the roster fits without side-scrolling. Always starts
+      // unfolded (every render of a freshly-opened session needs the
+      // recording controls first), and never persists — same reasoning as
+      // زووم نفسه: today's state shouldn't carry into tomorrow's session.
+      const foldRow = document.createElement('div');
+      foldRow.className = 'column-fold-row';
+      const foldBtn = document.createElement('button');
+      foldBtn.type = 'button';
+      foldBtn.className = 'btn btn-ghost btn-small';
+      let folded = false;
+      function updateFoldBtn() {
+        foldBtn.textContent = folded ? '🔼 إظهار كل الأعمدة' : '🔽 طيّ أعمدة التسجيل';
+      }
+      updateFoldBtn();
+      foldBtn.addEventListener('click', () => {
+        folded = !folded;
+        table.classList.toggle('columns-folded', folded);
+        updateFoldBtn();
+      });
+      foldRow.appendChild(foldBtn);
+      body.appendChild(foldRow);
 
       // Nothing above is written to storage until this is pressed — every
       // click just edited the in-memory draft, so a stray tap while
@@ -704,8 +837,8 @@
       }
 
       const tbody = document.createElement('tbody');
-      roster.forEach(studentName => {
-        tbody.appendChild(renderStudentRow(session.id, studentName, draft, markEdited));
+      roster.forEach((studentName, i) => {
+        tbody.appendChild(renderStudentRow(session.id, studentName, draft, markEdited, i));
       });
       table.appendChild(tbody);
 
@@ -725,8 +858,8 @@
       body.appendChild(saveRow);
     }
 
-    card.appendChild(body);
-    return card;
+    view.appendChild(body);
+    return view;
   }
 
   // Builds the row once, then every click updates only that button's
@@ -735,10 +868,18 @@
   // reset. (An earlier version called the full render() on every click,
   // which rebuilt the whole table and reset horizontal scroll on some
   // devices even with scroll-position save/restore.)
-  function renderStudentRow(classId, studentName, draft, onChange) {
+  function renderStudentRow(classId, studentName, draft, onChange, index) {
     const entry = draft[studentName];
 
     const tr = document.createElement('tr');
+
+    // Same idea as the numbering added to قوائم الفصول — reflects the
+    // student's position in the roster, not tied to their name, so
+    // reordering them there (▲/▼) is reflected here too.
+    const numberTd = document.createElement('td');
+    numberTd.className = 'attendance-number-col';
+    numberTd.textContent = String(index + 1);
+    tr.appendChild(numberTd);
 
     const nameTd = document.createElement('td');
     nameTd.className = 'period-label attendance-name-col';

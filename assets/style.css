@@ -1002,12 +1002,11 @@ main {
   overflow: hidden;
 }
 
-.session-card-header {
+.session-row {
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
 }
 
@@ -1026,29 +1025,70 @@ main {
 }
 
 .session-chevron {
-  transition: transform 0.15s;
   color: var(--text-muted);
 }
 
-.session-card.open .session-chevron {
-  transform: rotate(90deg);
-}
-
-.session-card-body {
-  display: none;
-}
-
-.session-card.open .session-card-body {
-  display: block;
-}
-
-.session-card-header .session-subject {
+.session-subject {
   font-weight: 600;
 }
 
-.session-card-header .session-meta {
+.session-meta {
   color: var(--text-muted);
   font-size: 0.82rem;
+}
+
+/* Opening a session takes over the whole page instead of expanding in
+   place — everything above the session list (date nav, holiday/add-cover
+   controls, the day's stats) is only meaningful when picking which
+   session to open, so it's hidden while one is zoomed in, freeing up
+   width and height for the roster table. */
+body.zoomed-session .date-bar,
+body.zoomed-session #daySummary,
+body.zoomed-session #holidayState,
+body.zoomed-session #termOutOfRangeState,
+body.zoomed-session #noScheduleState {
+  display: none;
+}
+
+body.zoomed-session main {
+  padding: 0;
+}
+
+.zoomed-session-view {
+  background: var(--surface);
+}
+
+.zoomed-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoomed-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoomed-body {
+  padding-bottom: 4px;
+}
+
+.column-fold-row {
+  padding: 10px 16px 0;
+}
+
+/* The number and name columns are the two teachers actually need after
+   they're done recording — everything else (الغياب/المشاركة/الدفتر/
+   السلوك) is folded away here, leaving only the quick-glance stats
+   column alongside the name. Column order matches the <th>/<td> order
+   built in JS: 1=#, 2=الاسم, 3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك,
+   7=الإحصائية. */
+.attendance-table.columns-folded th:nth-child(n+3):nth-child(-n+6),
+.attendance-table.columns-folded td:nth-child(n+3):nth-child(-n+6) {
+  display: none;
 }
 
 .temp-badge {
@@ -1103,6 +1143,29 @@ main {
   width: 130px;
   white-space: normal;
   border-left: 2px solid var(--primary) !important;
+}
+
+/* .period-label/.period-col-header (reused here for the sticky effect)
+   default to right:0, which is correct on the schedule grid where they're
+   the first column — but here they sit just after the sticky number
+   column, so they need to be inset by that column's width instead of
+   pinning to the bare edge. */
+.period-label.attendance-name-col,
+.period-col-header.attendance-name-col {
+  right: 26px;
+}
+
+.attendance-number-col {
+  width: 26px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  background: var(--bg);
+  transform: translateZ(0);
 }
 
 .attendance-stats-cell {
