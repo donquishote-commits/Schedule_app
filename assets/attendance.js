@@ -521,9 +521,10 @@
     if (!session.type) {
       const swapBtn = document.createElement('button');
       swapBtn.type = 'button';
-      swapBtn.className = 'btn btn-ghost btn-small';
-      swapBtn.textContent = '🔁 تبديل الحصة';
-      swapBtn.title = 'نقل هذه الحصة لمرة واحدة إلى تاريخ آخر';
+      swapBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      swapBtn.textContent = '🔁';
+      swapBtn.title = 'تبديل الحصة — نقلها لمرة واحدة إلى تاريخ آخر';
+      swapBtn.setAttribute('aria-label', 'تبديل الحصة');
       swapBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openSwapModal(session, dateISO);
@@ -578,8 +579,10 @@
 
       const toolsBtn = document.createElement('button');
       toolsBtn.type = 'button';
-      toolsBtn.className = 'btn btn-ghost btn-small';
-      toolsBtn.textContent = '🎲 أدوات الحصة';
+      toolsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      toolsBtn.textContent = '🎲';
+      toolsBtn.title = 'أدوات الحصة';
+      toolsBtn.setAttribute('aria-label', 'أدوات الحصة');
       toolsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         openToolsModal(session, roster, draft);
