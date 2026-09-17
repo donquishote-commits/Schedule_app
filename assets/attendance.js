@@ -483,10 +483,13 @@
       card.classList.toggle('open');
     });
 
+    const titleRow = document.createElement('div');
+    titleRow.className = 'session-card-title-row';
+
     const chevron = document.createElement('span');
     chevron.className = 'session-chevron';
     chevron.textContent = '◀';
-    header.appendChild(chevron);
+    titleRow.appendChild(chevron);
 
     if (session.type) {
       // Icon and label as separate flex-item spans, not one string with the
@@ -502,10 +505,10 @@
       badgeText.textContent = session.type === 'swap' ? 'تبديل' : 'تغطية';
       badge.appendChild(badgeIcon);
       badge.appendChild(badgeText);
-      header.appendChild(badge);
+      titleRow.appendChild(badge);
     }
 
-    header.insertAdjacentHTML('beforeend', `
+    titleRow.insertAdjacentHTML('beforeend', `
       <span class="session-subject">${escapeHTML(session.subject)}</span>
       <span class="session-meta">${escapeHTML(isolateLTR(session.room || ''))}</span>
       <span class="session-meta">${escapeHTML(periodLabelFor(session.periodKey))}</span>
@@ -515,8 +518,13 @@
       const fromSpan = document.createElement('span');
       fromSpan.className = 'session-meta';
       fromSpan.textContent = `(بدل حصة ${session.sourceDate})`;
-      header.appendChild(fromSpan);
+      titleRow.appendChild(fromSpan);
     }
+
+    header.appendChild(titleRow);
+
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'session-card-actions-row';
 
     if (!session.type) {
       const swapBtn = document.createElement('button');
@@ -529,7 +537,7 @@
         e.stopPropagation();
         openSwapModal(session, dateISO);
       });
-      header.appendChild(swapBtn);
+      actionsRow.appendChild(swapBtn);
     } else {
       // Editing is cover-only — a swap always mirrors its source class's
       // subject/room/period exactly, so there's nothing on it to edit;
@@ -545,7 +553,7 @@
           e.stopPropagation();
           openCoverModal(session);
         });
-        header.appendChild(editCoverBtn);
+        actionsRow.appendChild(editCoverBtn);
       }
 
       const deleteTempBtn = document.createElement('button');
@@ -561,7 +569,7 @@
         e.stopPropagation();
         deleteTempSession(session.id, dateISO);
       });
-      header.appendChild(deleteTempBtn);
+      actionsRow.appendChild(deleteTempBtn);
     }
 
     if (roster && roster.length > 0) {
@@ -575,7 +583,7 @@
         e.stopPropagation();
         copyAbsentees(roster, draft, copyBtn);
       });
-      header.appendChild(copyBtn);
+      actionsRow.appendChild(copyBtn);
 
       const toolsBtn = document.createElement('button');
       toolsBtn.type = 'button';
@@ -587,8 +595,10 @@
         e.stopPropagation();
         openToolsModal(session, roster, draft);
       });
-      header.appendChild(toolsBtn);
+      actionsRow.appendChild(toolsBtn);
     }
+
+    header.appendChild(actionsRow);
     card.appendChild(header);
 
     const body = document.createElement('div');
