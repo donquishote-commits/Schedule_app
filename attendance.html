@@ -24,6 +24,7 @@
       <button type="button" id="moreMenuBtn" class="btn btn-ghost icon-btn-round" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-haspopup="true">⚙️</button>
       <div id="moreMenu" class="dropdown-menu" hidden>
         <button id="termsBtn" class="btn btn-ghost" title="تحديد تواريخ بداية ونهاية الفصلين الدراسيين">📅 تحديد الفصلين الدراسيين</button>
+        <button id="formsLinkBtn" class="btn btn-ghost" title="تحديد رابط نموذج تسجيل الغياب الذي توفره المدرسة">🔗 رابط نموذج الغياب</button>
         <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
       </div>
     </div>
@@ -101,6 +102,32 @@
       <div class="modal-footer">
         <div class="spacer"></div>
         <button type="button" id="cancelTermsBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- The Google Forms link (or similar) the school provides for teachers to
+     record absentees in — once set, a button next to every session opens it
+     directly, so "نسخ أسماء الغياب" copies names ready to paste straight in. -->
+<div id="formsLinkModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>رابط نموذج تسجيل الغياب</h2>
+      <button type="button" class="icon-btn" id="closeFormsLinkModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="formsLinkForm">
+      <p class="hint-text">
+        الصق هنا رابط نموذج تسجيل الغياب الذي توفره المدرسة — سيظهر بجانب كل حصة زر 🔗
+        ينقلك إليه مباشرة بعد نسخ أسماء الغائبين.
+      </p>
+      <label class="form-field">الرابط
+        <input type="url" id="formsLinkInput" placeholder="https://forms.gle/...">
+      </label>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelFormsLinkBtn" class="btn btn-ghost">إلغاء</button>
         <button type="submit" class="btn btn-primary">حفظ</button>
       </div>
     </form>

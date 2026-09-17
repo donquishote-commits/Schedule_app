@@ -7,6 +7,7 @@
   const HOLIDAYS_KEY = 'schedule_app_holidays_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
+  const FORMS_URL_KEY = 'schedule_app_forms_url_v1';
 
   // Must match assets/app.js's SUBJECTS/ROOMS/SUBJECT_ROOMS — used by the
   // "إضافة حصة لهذا اليوم" (تغطية) form, which needs the same subject/room
@@ -85,6 +86,13 @@
   // schedule. type:'swap' entries also carry sourceClassId/sourceDate,
   // identifying the recurring class+date they replace for that one day.
   let tempSessions = loadJSON(TEMP_SESSIONS_KEY, []);
+  // رابط نموذج تسجيل الغياب الذي توفره المدرسة (مثلًا Google Forms) —
+  // يحدده المستخدم مرة واحدة من قائمة ⚙️، وزر بجانب كل حصة يفتحه مباشرة.
+  let formsUrl = localStorage.getItem(FORMS_URL_KEY) || '';
+
+  function saveFormsUrl() {
+    localStorage.setItem(FORMS_URL_KEY, formsUrl);
+  }
 
   function saveAttendance() {
     localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendance));
@@ -596,6 +604,18 @@
         openToolsModal(session, roster, draft);
       });
       actionsRow.appendChild(toolsBtn);
+
+      const formsBtn = document.createElement('button');
+      formsBtn.type = 'button';
+      formsBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+      formsBtn.textContent = '🔗';
+      formsBtn.title = 'فتح نموذج تسجيل الغياب';
+      formsBtn.setAttribute('aria-label', 'فتح نموذج تسجيل الغياب');
+      formsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openFormsLink();
+      });
+      actionsRow.appendChild(formsBtn);
     }
 
     header.appendChild(actionsRow);
@@ -1336,6 +1356,54 @@
       saveTerms();
       closeTermsModal();
       render();
+    });
+  }
+
+  // ---------- Forms link (رابط نموذج تسجيل الغياب) ----------
+  function openFormsLink() {
+    if (!formsUrl) {
+      alert('لم تُحدّد رابط نموذج تسجيل الغياب بعد — حدده من قائمة ⚙️ أولًا.');
+      return;
+    }
+    window.open(formsUrl, '_blank', 'noopener');
+  }
+
+  const formsLinkBtn = document.getElementById('formsLinkBtn');
+  const formsLinkModal = document.getElementById('formsLinkModal');
+  const formsLinkForm = document.getElementById('formsLinkForm');
+  const formsLinkInput = document.getElementById('formsLinkInput');
+  const closeFormsLinkModalBtn = document.getElementById('closeFormsLinkModalBtn');
+  const cancelFormsLinkBtn = document.getElementById('cancelFormsLinkBtn');
+
+  let formsLinkOpenedSnapshot = '';
+
+  function openFormsLinkModal() {
+    formsLinkInput.value = formsUrl;
+    formsLinkModal.hidden = false;
+    formsLinkOpenedSnapshot = formsLinkInput.value;
+  }
+
+  function closeFormsLinkModal() {
+    formsLinkModal.hidden = true;
+  }
+
+  function closeFormsLinkModalIfConfirmed() {
+    if (formsLinkInput.value !== formsLinkOpenedSnapshot) {
+      if (!confirm('لديك تعديل على رابط النموذج لم يُحفظ. إذا أغلقت الآن، سيُفقد هذا التعديل. هل تريد المتابعة؟')) return;
+    }
+    closeFormsLinkModal();
+  }
+
+  if (formsLinkBtn) formsLinkBtn.addEventListener('click', openFormsLinkModal);
+  if (closeFormsLinkModalBtn) closeFormsLinkModalBtn.addEventListener('click', closeFormsLinkModalIfConfirmed);
+  if (cancelFormsLinkBtn) cancelFormsLinkBtn.addEventListener('click', closeFormsLinkModalIfConfirmed);
+
+  if (formsLinkForm) {
+    formsLinkForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      formsUrl = formsLinkInput.value.trim();
+      saveFormsUrl();
+      closeFormsLinkModal();
     });
   }
 
