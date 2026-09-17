@@ -1151,6 +1151,18 @@ body.zoomed-session main {
   body.zoomed-session .session-card-title-row {
     flex: 1;
   }
+
+  /* .topbar-stacked normally stacks the title+gear row above the nav
+     links row (two lines) — on a landscape phone that's a bigger bite
+     out of an already-short viewport than it needs to be, so this puts
+     both rows back side by side on one line while a session is zoomed. */
+  body.zoomed-session .topbar-stacked {
+    flex-direction: row;
+    padding: 8px 20px;
+  }
+  body.zoomed-session .topbar h1 {
+    font-size: 1.05rem;
+  }
 }
 
 .temp-badge {
@@ -1240,6 +1252,9 @@ body.zoomed-session main {
   display: flex;
   gap: 4px;
   flex-wrap: nowrap;
+  width: 100%;
+  justify-content: space-evenly;
+  align-items: center;
 }
 
 .pill-btn {
