@@ -995,6 +995,14 @@ main {
   max-width: 820px;
 }
 
+/* That 820px cap keeps the compact session list at a comfortable reading
+   width on a wide screen — it has no business also capping the
+   full-screen zoomed view, whose whole point is to use every pixel of
+   width it can get. */
+body.zoomed-session #sessionsContainer {
+  max-width: none;
+}
+
 .session-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1216,6 +1224,14 @@ body.zoomed-session main {
 .attendance-table {
   table-layout: auto;
   min-width: 900px;
+  width: 100%;
+}
+
+/* Header stays centered like every other column — only the name itself
+   (in the data rows) reads right-aligned, its normal reading start in
+   RTL, instead of centered like a short pill label. */
+.attendance-table tbody td.attendance-name-col {
+  text-align: right;
 }
 
 .attendance-table th,
@@ -1249,7 +1265,7 @@ body.zoomed-session main {
 .attendance-number-col {
   width: 26px;
   text-align: center;
-  font-size: 0.78rem;
+  font-size: 1rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   position: sticky;
