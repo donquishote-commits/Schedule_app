@@ -566,8 +566,10 @@
     if (roster && roster.length > 0) {
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
-      copyBtn.className = 'btn btn-ghost btn-small copy-absentees-btn';
-      copyBtn.textContent = 'نسخ أسماء الغياب';
+      copyBtn.className = 'btn btn-ghost btn-small icon-btn-round copy-absentees-btn';
+      copyBtn.textContent = '📋';
+      copyBtn.title = 'نسخ أسماء الغياب';
+      copyBtn.setAttribute('aria-label', 'نسخ أسماء الغياب');
       copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         copyAbsentees(roster, draft, copyBtn);

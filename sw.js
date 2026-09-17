@@ -1,4 +1,4 @@
-const CACHE_NAME = 'schedule-app-v88';
+const CACHE_NAME = 'schedule-app-v89';
 const ASSETS = [
   './',
   './index.html',
