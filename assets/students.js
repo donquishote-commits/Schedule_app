@@ -449,6 +449,11 @@
     (classes[className] || []).forEach((student, index) => {
       const li = document.createElement('li');
 
+      const numberSpan = document.createElement('span');
+      numberSpan.className = 'student-number';
+      numberSpan.textContent = String(index + 1);
+      li.appendChild(numberSpan);
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'student-name';
       nameSpan.textContent = student;

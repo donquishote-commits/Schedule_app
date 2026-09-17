@@ -825,8 +825,18 @@ main {
   border-radius: 6px;
 }
 
+.student-list .student-number {
+  flex: 0 0 auto;
+  width: 18px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .student-list .student-name {
   flex: 1;
+  min-width: 0;
 }
 
 .student-list .student-remove {
