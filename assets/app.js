@@ -112,16 +112,13 @@
   const ICS_DAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
   const SCHOOL_UTC_OFFSET_HOURS = 3; // Arabian Standard Time (Saudi/Kuwait/Qatar/Bahrain), no DST
 
-  // The user's real timetable, used to seed the schedule the first time
-  // the app runs on a browser with no saved data yet.
-  const DEFAULT_CLASSES = [
-    { id: 'seed-1', day: 0, periodKey: 1, subject: 'الفلسفة', room: '12 د 1', notes: [] },
-    { id: 'seed-2', day: 2, periodKey: 6, subject: 'الفلسفة', room: '12 د 1', notes: [] },
-    { id: 'seed-3', day: 2, periodKey: 7, subject: 'الدستور', room: '12 ع 4', notes: [] },
-    { id: 'seed-4', day: 3, periodKey: 3, subject: 'اجتماع القسم الأسبوعي', room: '', notes: [] },
-    { id: 'seed-5', day: 4, periodKey: 2, subject: 'الدستور', room: '12 ع 6', notes: [] },
-    { id: 'seed-6', day: 4, periodKey: 7, subject: 'الدستور', room: '12 ع 5', notes: [] },
-  ];
+  // Seeds the schedule the first time the app runs on a browser with no
+  // saved data yet — empty so a colleague opening the link for the first
+  // time starts with a blank grid instead of the original owner's classes.
+  // Anyone with data already saved on their device is unaffected either
+  // way, since loadClasses() below only falls back to this when there's
+  // nothing saved yet.
+  const DEFAULT_CLASSES = [];
 
   // Forces strict left-to-right character order so the RTL bidi algorithm
   // doesn't reorder digit runs around Arabic letters — e.g. "12د1" (a
