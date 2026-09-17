@@ -204,14 +204,21 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  /* iOS Safari has a known bug where position:sticky content inside a
-     horizontally-scrolling container silently fails to repaint during
+  /* iOS WebKit has a known bug where content inside a horizontally-
+     scrolling container silently fails to repaint during page-level
      momentum scrolling — it visually disappears until something else
-     forces a reflow (like refreshing the page). This container's own
-     scrolling class is shared by every roster/report table in the app
-     (attendance-table-wrap, report-table-wrap both start from this same
-     class), so one fix here covers all of them. */
+     forces a reflow (like refreshing the page). This happens even without
+     any position:sticky content inside, which is why the roster tables
+     (attendance-table-wrap, report-table-wrap — both apply this class
+     alongside their own) hit it despite their name column not actually
+     being sticky. transform:translateZ(0) promotes the whole container to
+     its own GPU-composited layer, which is what reliably keeps it painted
+     through momentum scrolling on modern iOS — this class is shared by
+     every roster/report table in the app, so one fix here covers all of
+     them. -webkit-overflow-scrolling alone does not fix this on modern
+     iOS versions. */
   -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
 }
 
 .grid {
