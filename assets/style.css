@@ -1076,33 +1076,44 @@ body.zoomed-session main {
   padding-bottom: 4px;
 }
 
-/* Each foldable column's own ▾/▸ toggle hides just that column's body
-   cells — the header itself stays put (it's the only way back), so the
-   column's width just shrinks to fit the header label once its pills are
-   gone. th:nth-child position matches the <th> build order in JS:
-   3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك. */
+/* Each foldable column's chip (above the table, see column-fold-chips)
+   hides that column's header AND body cells together — hiding only the
+   <td> left the header behind while every other cell in that data row
+   shifted left to fill the gap (CSS tables don't preserve a blank slot
+   for one hidden cell in a single row), which misaligned that row
+   against the header above it. nth-child position matches the <th>
+   build order in JS: 3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك. */
+.attendance-table.hide-col-2 th:nth-child(3),
 .attendance-table.hide-col-2 td:nth-child(3),
+.attendance-table.hide-col-3 th:nth-child(4),
 .attendance-table.hide-col-3 td:nth-child(4),
+.attendance-table.hide-col-4 th:nth-child(5),
 .attendance-table.hide-col-4 td:nth-child(5),
+.attendance-table.hide-col-5 th:nth-child(6),
 .attendance-table.hide-col-5 td:nth-child(6) {
   display: none;
 }
 
-.column-fold-header {
+.column-fold-chips {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 16px 0;
 }
 
-.column-fold-toggle {
-  background: none;
-  border: none;
-  color: var(--text-muted);
+.column-fold-chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
   cursor: pointer;
-  font-size: 0.7rem;
-  line-height: 1;
-  padding: 2px;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+}
+
+.column-fold-chip.folded {
+  color: var(--text-muted);
+  border-color: transparent;
 }
 
 .rotate-hint {

@@ -767,57 +767,56 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      // Once the teacher is done recording a given column (حاضر/غائب,
-      // المشاركة, الدفتر, السلوك), that one column specifically is rarely
-      // touched again — each of these four gets its own fold toggle right
-      // in its header (▾ open / ▸ folded), so any combination can be
-      // tucked away independently instead of an all-or-nothing switch.
-      // Always starts fully unfolded on a freshly-opened session and
-      // never persists — same reasoning as زووم نفسه: today's state
-      // shouldn't carry into tomorrow's.
-      const FOLDABLE_COLUMNS = new Set([2, 3, 4, 5]);
       ['#', 'اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
         const th = document.createElement('th');
+        th.textContent = label;
         if (i === 0) th.className = 'attendance-number-col';
         if (i === 1) th.className = 'period-col-header attendance-name-col';
-
-        if (FOLDABLE_COLUMNS.has(i)) {
-          // The flex layout for label+toggle has to live on an inner div,
-          // never on the <th> itself — display:flex on a table header
-          // cell knocks it out of the table's own cell layout entirely
-          // (it stops behaving as a column and stacks in normal flow
-          // instead), which is exactly what broke this the first time.
-          const inner = document.createElement('div');
-          inner.className = 'column-fold-header';
-          const labelSpan = document.createElement('span');
-          labelSpan.textContent = label;
-          const toggleBtn = document.createElement('button');
-          toggleBtn.type = 'button';
-          toggleBtn.className = 'column-fold-toggle';
-          const colClass = `hide-col-${i}`;
-          let colFolded = false;
-          function updateToggle() {
-            toggleBtn.textContent = colFolded ? '▸' : '▾';
-            const title = colFolded ? `إظهار عمود ${label}` : `طيّ عمود ${label}`;
-            toggleBtn.title = title;
-            toggleBtn.setAttribute('aria-label', title);
-          }
-          updateToggle();
-          toggleBtn.addEventListener('click', () => {
-            colFolded = !colFolded;
-            table.classList.toggle(colClass, colFolded);
-            updateToggle();
-          });
-          inner.appendChild(labelSpan);
-          inner.appendChild(toggleBtn);
-          th.appendChild(inner);
-        } else {
-          th.textContent = label;
-        }
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
       table.appendChild(thead);
+
+      // Once the teacher is done recording a given column (حاضر/غائب,
+      // المشاركة, الدفتر, السلوك), that one column specifically is rarely
+      // touched again — each of these four gets its own fold chip here,
+      // so any combination can be tucked away independently instead of an
+      // all-or-nothing switch. The chips live outside the table (not on
+      // each <th>) because a column has to hide its <th> together with
+      // its <td>s: CSS tables don't leave a "gap" for a cell hidden in
+      // just one row — every other cell in that row shifts left to fill
+      // it, which misaligns the row against the header the moment only
+      // the <td> is hidden. With header and data hidden together, every
+      // row (header included) keeps the same cell count, so nothing
+      // shifts — which is also why the toggle can't live on the <th>
+      // itself once it's the thing being hidden. Always starts fully
+      // unfolded on a freshly-opened session and never persists — same
+      // reasoning as زووم نفسه: today's state shouldn't carry into
+      // tomorrow's.
+      const foldChipsRow = document.createElement('div');
+      foldChipsRow.className = 'column-fold-chips';
+      [[2, 'الغياب'], [3, 'المشاركة'], [4, 'الدفتر'], [5, 'السلوك']].forEach(([colIndex, label]) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'column-fold-chip';
+        const colClass = `hide-col-${colIndex}`;
+        let colFolded = false;
+        function updateChip() {
+          chip.textContent = `${colFolded ? '▸' : '▾'} ${label}`;
+          chip.classList.toggle('folded', colFolded);
+          const title = colFolded ? `إظهار عمود ${label}` : `طيّ عمود ${label}`;
+          chip.title = title;
+          chip.setAttribute('aria-label', title);
+        }
+        updateChip();
+        chip.addEventListener('click', () => {
+          colFolded = !colFolded;
+          table.classList.toggle(colClass, colFolded);
+          updateChip();
+        });
+        foldChipsRow.appendChild(chip);
+      });
+      body.appendChild(foldChipsRow);
 
       // Nothing above is written to storage until this is pressed — every
       // click just edited the in-memory draft, so a stray tap while
