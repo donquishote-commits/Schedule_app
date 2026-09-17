@@ -1076,19 +1076,70 @@ body.zoomed-session main {
   padding-bottom: 4px;
 }
 
-.column-fold-row {
-  padding: 10px 16px 0;
+/* Each foldable column's own ▾/▸ toggle hides just that column's body
+   cells — the header itself stays put (it's the only way back), so the
+   column's width just shrinks to fit the header label once its pills are
+   gone. th:nth-child position matches the <th> build order in JS:
+   3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك. */
+.attendance-table.hide-col-2 td:nth-child(3),
+.attendance-table.hide-col-3 td:nth-child(4),
+.attendance-table.hide-col-4 td:nth-child(5),
+.attendance-table.hide-col-5 td:nth-child(6) {
+  display: none;
 }
 
-/* The number and name columns are the two teachers actually need after
-   they're done recording — everything else (الغياب/المشاركة/الدفتر/
-   السلوك) is folded away here, leaving only the quick-glance stats
-   column alongside the name. Column order matches the <th>/<td> order
-   built in JS: 1=#, 2=الاسم, 3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك,
-   7=الإحصائية. */
-.attendance-table.columns-folded th:nth-child(n+3):nth-child(-n+6),
-.attendance-table.columns-folded td:nth-child(n+3):nth-child(-n+6) {
+.column-fold-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.column-fold-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px;
+}
+
+.rotate-hint {
   display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Real orientation, not a simulated rotation — Screen Orientation Lock
+   isn't supported on iOS Safari, so instead of fighting that, the
+   teacher turns the phone the same way they would to watch a video, and
+   this reacts to the phone's actual physical orientation. The hint above
+   only shows in portrait; landscape flattens the header into one denser
+   row (nav + title + actions side by side instead of stacked) to give
+   the roster table back the vertical room a landscape phone is short on. */
+@media (orientation: portrait) {
+  body.zoomed-session .rotate-hint {
+    display: flex;
+  }
+}
+
+@media (orientation: landscape) {
+  body.zoomed-session .zoomed-header {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  body.zoomed-session .session-card-title-row {
+    flex: 1;
+  }
 }
 
 .temp-badge {

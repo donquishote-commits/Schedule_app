@@ -740,6 +740,14 @@
 
     view.appendChild(header);
 
+    // Pure-CSS nudge (media query only, no JS state) — shows only while
+    // the phone is still portrait, disappears the instant it's rotated to
+    // landscape, where the roster table gets noticeably more room.
+    const rotateHint = document.createElement('div');
+    rotateHint.className = 'rotate-hint';
+    rotateHint.textContent = '🔄 أدر جوالك لوضع أفقي لعرض أفضل';
+    view.appendChild(rotateHint);
+
     const body = document.createElement('div');
     body.className = 'zoomed-body';
 
@@ -759,40 +767,50 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
+      // Once the teacher is done recording a given column (حاضر/غائب,
+      // المشاركة, الدفتر, السلوك), that one column specifically is rarely
+      // touched again — each of these four gets its own fold toggle right
+      // in its header (▾ open / ▸ folded), so any combination can be
+      // tucked away independently instead of an all-or-nothing switch.
+      // Always starts fully unfolded on a freshly-opened session and
+      // never persists — same reasoning as زووم نفسه: today's state
+      // shouldn't carry into tomorrow's.
+      const FOLDABLE_COLUMNS = new Set([2, 3, 4, 5]);
       ['#', 'اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
         const th = document.createElement('th');
-        th.textContent = label;
         if (i === 0) th.className = 'attendance-number-col';
         if (i === 1) th.className = 'period-col-header attendance-name-col';
+
+        if (FOLDABLE_COLUMNS.has(i)) {
+          th.classList.add('column-fold-header');
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = label;
+          const toggleBtn = document.createElement('button');
+          toggleBtn.type = 'button';
+          toggleBtn.className = 'column-fold-toggle';
+          const colClass = `hide-col-${i}`;
+          let colFolded = false;
+          function updateToggle() {
+            toggleBtn.textContent = colFolded ? '▸' : '▾';
+            const title = colFolded ? `إظهار عمود ${label}` : `طيّ عمود ${label}`;
+            toggleBtn.title = title;
+            toggleBtn.setAttribute('aria-label', title);
+          }
+          updateToggle();
+          toggleBtn.addEventListener('click', () => {
+            colFolded = !colFolded;
+            table.classList.toggle(colClass, colFolded);
+            updateToggle();
+          });
+          th.appendChild(labelSpan);
+          th.appendChild(toggleBtn);
+        } else {
+          th.textContent = label;
+        }
         headRow.appendChild(th);
       });
       thead.appendChild(headRow);
       table.appendChild(thead);
-
-      // Once the teacher is done recording (حاضر/غائب, المشاركة, الدفتر,
-      // السلوك), those columns are rarely touched again — this folds them
-      // away, keeping just the name and the quick-glance stats column, so
-      // more of the roster fits without side-scrolling. Always starts
-      // unfolded (every render of a freshly-opened session needs the
-      // recording controls first), and never persists — same reasoning as
-      // زووم نفسه: today's state shouldn't carry into tomorrow's session.
-      const foldRow = document.createElement('div');
-      foldRow.className = 'column-fold-row';
-      const foldBtn = document.createElement('button');
-      foldBtn.type = 'button';
-      foldBtn.className = 'btn btn-ghost btn-small';
-      let folded = false;
-      function updateFoldBtn() {
-        foldBtn.textContent = folded ? '🔼 إظهار كل الأعمدة' : '🔽 طيّ أعمدة التسجيل';
-      }
-      updateFoldBtn();
-      foldBtn.addEventListener('click', () => {
-        folded = !folded;
-        table.classList.toggle('columns-folded', folded);
-        updateFoldBtn();
-      });
-      foldRow.appendChild(foldBtn);
-      body.appendChild(foldRow);
 
       // Nothing above is written to storage until this is pressed — every
       // click just edited the in-memory draft, so a stray tap while
