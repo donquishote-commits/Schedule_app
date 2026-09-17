@@ -204,6 +204,14 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  /* iOS Safari has a known bug where position:sticky content inside a
+     horizontally-scrolling container silently fails to repaint during
+     momentum scrolling — it visually disappears until something else
+     forces a reflow (like refreshing the page). This container's own
+     scrolling class is shared by every roster/report table in the app
+     (attendance-table-wrap, report-table-wrap both start from this same
+     class), so one fix here covers all of them. */
+  -webkit-overflow-scrolling: touch;
 }
 
 .grid {
@@ -225,6 +233,7 @@ main {
   background: var(--surface);
   position: sticky;
   top: 0;
+  transform: translateZ(0);
 }
 
 .day-date {
@@ -235,12 +244,18 @@ main {
   margin-top: 2px;
 }
 
+/* transform:translateZ(0) forces these two sticky columns onto their own
+   GPU-composited layer — the actual fix for the iOS Safari bug described
+   at .schedule-wrap above. -webkit-overflow-scrolling alone stops working
+   as a fix on modern iOS versions; promoting the sticky element itself is
+   what reliably keeps it painted through momentum scrolling. */
 .period-col-header {
   width: 110px;
   position: sticky;
   right: 0;
   z-index: 3;
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+  transform: translateZ(0);
 }
 
 .period-label {
@@ -253,6 +268,7 @@ main {
   right: 0;
   z-index: 2;
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+  transform: translateZ(0);
 }
 
 .period-label .period-name {
