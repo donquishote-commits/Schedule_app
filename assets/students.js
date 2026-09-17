@@ -340,6 +340,45 @@
     names.forEach(className => {
       container.appendChild(renderClassCard(className));
     });
+
+    fitStudentNames();
+  }
+
+  // A very long name can wrap to two lines in the roster row, making that
+  // row taller and uneven next to its neighbors. Rather than truncating
+  // (hiding part of the name) or asking the teacher to shorten it, this
+  // shrinks just that name's font size step by step until it fits back on
+  // one line — measured after layout (rAF), since wrapping can't be
+  // detected before the element is actually painted at its real width.
+  //
+  // .student-name is a flex item, and a flex item's display is always
+  // "blockified" (a <span> flex item computes to display:block) — so
+  // getClientRects() always reports one rect for it regardless of how
+  // many lines its text wraps to; that trick only works on genuinely
+  // inline elements. Detecting real wrapping here instead means comparing
+  // its normally-wrapped height against its own single-line height,
+  // measured by briefly forcing white-space:nowrap.
+  function fitStudentNames() {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.student-list .student-name').forEach(nameSpan => {
+        nameSpan.style.fontSize = '';
+        const minFontSize = 0.72;
+        let fontSize = 0.9;
+
+        function wraps() {
+          const wrappedHeight = nameSpan.offsetHeight;
+          nameSpan.style.whiteSpace = 'nowrap';
+          const singleLineHeight = nameSpan.offsetHeight;
+          nameSpan.style.whiteSpace = '';
+          return wrappedHeight > singleLineHeight + 1;
+        }
+
+        while (wraps() && fontSize > minFontSize) {
+          fontSize = Math.round((fontSize - 0.03) * 100) / 100;
+          nameSpan.style.fontSize = `${fontSize}rem`;
+        }
+      });
+    });
   }
 
   function renderClassCard(className) {
