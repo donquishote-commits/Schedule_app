@@ -151,6 +151,18 @@
     return dateToISO(d);
   }
 
+  // Used by the ◀/▶ day-navigation buttons only — skips Friday/Saturday
+  // (no classes those days) so one press from Thursday lands on the next
+  // Sunday instead of a dead weekend day. Manually picking a weekend date
+  // from the date input itself is untouched.
+  function nextSchoolDay(iso, delta) {
+    let d = addDays(iso, delta);
+    while ([5, 6].includes(isoToDate(d).getDay())) {
+      d = addDays(d, delta);
+    }
+    return d;
+  }
+
   // ---------- Effective sessions for a date (recurring schedule + temp) ----------
   // A swapped-away class disappears only from its own source date — the
   // recurring class definition itself is never touched, so every other
@@ -1241,13 +1253,13 @@
   });
   document.getElementById('prevDayBtn').addEventListener('click', () => {
     navigateIfConfirmed(() => {
-      datePicker.value = addDays(currentRenderedDate, -1);
+      datePicker.value = nextSchoolDay(currentRenderedDate, -1);
       render();
     });
   });
   document.getElementById('nextDayBtn').addEventListener('click', () => {
     navigateIfConfirmed(() => {
-      datePicker.value = addDays(currentRenderedDate, 1);
+      datePicker.value = nextSchoolDay(currentRenderedDate, 1);
       render();
     });
   });
