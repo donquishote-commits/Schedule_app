@@ -996,7 +996,7 @@
       const td = document.createElement('td');
       const group = document.createElement('div');
       group.className = 'control-group';
-      const btn = pillBtn('ناقص', entry[fieldKey] === true, 'active-absent', () => {
+      const btn = pillBtn('لم يُحضِر', entry[fieldKey] === true, 'active-absent', () => {
         entry[fieldKey] = !entry[fieldKey];
         btn.className = 'pill-btn' + (entry[fieldKey] ? ' active-absent' : '');
         onChange();
