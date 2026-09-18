@@ -1537,15 +1537,17 @@
   }
 
   // ---------- Forms link (رابط نموذج تسجيل الغياب) ----------
-  // Field ids (Microsoft Forms' own "rXXXXXXXX..." names) and fixed values
-  // specific to عبدالله's "Class Attendance" form — hardcoded for now to
-  // get the basic case working; once this proves out, teacher name/قسم
-  // become settings so colleagues in other أقسام can point this at their
-  // own form. Decoded from a real pre-filled link عبدالله shared, not
-  // guessed — a choice-type field's value arrives JSON-quoted
-  // (e.g. `"12 علمي 1"`), a free-text field's doesn't.
-  const FORMS_DEPARTMENT = 'علم النفس و الفلسفة';
-  const FORMS_TEACHER_NAME = 'عبدالله فيصل الشمري';
+  // Field ids are Microsoft Forms' own "rXXXXXXXX..." names, specific to
+  // عبدالله's "Class Attendance" form — decoded from a real pre-filled
+  // link he shared, not guessed: a choice-type field's value arrives
+  // JSON-quoted (e.g. `"12 علمي 1"`), a free-text field's doesn't. Teacher
+  // name/قسم come from صفحة الجدول's إعدادات المعلم (app.js), so colleagues
+  // in other أقسام can point the same form at their own name/قسم; the
+  // fallbacks below are just this session's own values.
+  const TEACHER_NAME_KEY = 'schedule_app_teacher_name_v1';
+  const TEACHER_DEPARTMENT_KEY = 'schedule_app_teacher_department_v1';
+  const DEFAULT_TEACHER_NAME = 'عبدالله فيصل الشمري';
+  const DEFAULT_TEACHER_DEPARTMENT = 'علم النفس و الفلسفة';
   const FORMS_FIELD_ROOM = 'rbf50dda6c3c14e2bb9b18e48472dce29';
   const FORMS_FIELD_PERIOD = 'r6460c5b5c87e48f38dd3babf04c98b18';
   const FORMS_FIELD_ABSENTEES = 'r0914b7730657458684279968998575e9';
@@ -1583,8 +1585,8 @@
     params.set(FORMS_FIELD_ROOM, JSON.stringify(formRoomName(session.room)));
     params.set(FORMS_FIELD_PERIOD, JSON.stringify(String(session.periodKey)));
     params.set(FORMS_FIELD_ABSENTEES, absentees.join('\n'));
-    params.set(FORMS_FIELD_DEPARTMENT, JSON.stringify(FORMS_DEPARTMENT));
-    params.set(FORMS_FIELD_TEACHER, FORMS_TEACHER_NAME);
+    params.set(FORMS_FIELD_DEPARTMENT, JSON.stringify(localStorage.getItem(TEACHER_DEPARTMENT_KEY) || DEFAULT_TEACHER_DEPARTMENT));
+    params.set(FORMS_FIELD_TEACHER, localStorage.getItem(TEACHER_NAME_KEY) || DEFAULT_TEACHER_NAME);
     const query = Array.from(params.entries())
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
       .join('&');

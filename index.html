@@ -23,6 +23,7 @@
     <div class="menu-wrap">
       <button type="button" id="moreMenuBtn" class="btn btn-ghost icon-btn-round" title="المزيد من الخيارات" aria-label="المزيد من الخيارات" aria-haspopup="true">⚙️</button>
       <div id="moreMenu" class="dropdown-menu" hidden>
+        <button id="teacherSettingsBtn" class="btn btn-ghost" title="اسمك وقسمك العلمي — تُستخدم لتعبئة نموذج تسجيل الغياب تلقائيًا">👤 إعدادات المعلم</button>
         <button id="exportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية من الجدول">📤 تصدير</button>
         <button id="importBtn" class="btn btn-ghost" title="استعادة الجدول من نسخة احتياطية">📥 استيراد</button>
         <button id="exportCalendarBtn" class="btn btn-ghost" title="تنزيل ملف تقويم لاستيراده في Google Calendar">📅 تصدير إلى Google Calendar</button>
@@ -174,6 +175,35 @@
       <div class="spacer"></div>
       <a id="tempDetailsManageLink" href="#" class="btn btn-primary">فتح في المتابعة اليومية</a>
     </div>
+  </div>
+</div>
+
+<!-- Teacher's own name and القسم العلمي — used to pre-fill the school's
+     Microsoft Forms attendance link (المتابعة اليومية) without hardcoding
+     one specific teacher, so colleagues in other أقسام can use the same
+     app pointed at their own name/قسم. -->
+<div id="teacherSettingsModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>إعدادات المعلم</h2>
+      <button type="button" class="icon-btn" id="closeTeacherSettingsModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="teacherSettingsForm">
+      <p class="hint-text">
+        تُستخدم هذه البيانات لتعبئة اسمك وقسمك تلقائيًا في نموذج تسجيل الغياب عند فتحه من صفحة المتابعة اليومية.
+      </p>
+      <label class="form-field">اسم المعلم
+        <input type="text" id="teacherNameInput" placeholder="مثال: عبدالله فيصل الشمري">
+      </label>
+      <div class="form-field">القسم العلمي
+        <div id="teacherDepartment"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelTeacherSettingsBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
   </div>
 </div>
 

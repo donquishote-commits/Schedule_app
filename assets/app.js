@@ -4,6 +4,28 @@
   const STORAGE_KEY = 'schedule_app_classes_ar_v1';
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
+  const TEACHER_NAME_KEY = 'schedule_app_teacher_name_v1';
+  const TEACHER_DEPARTMENT_KEY = 'schedule_app_teacher_department_v1';
+
+  // Exact wording from the school's own Microsoft Forms القسم dropdown —
+  // pre-fill only works with a byte-for-byte match, so these are copied
+  // from a real screenshot of the form's option list, not typed freehand.
+  const DEPARTMENTS = [
+    'التربية الاسلامية',
+    'اللغة العربية',
+    'اللغة الانجليزية',
+    'اللغة الفرنسية',
+    'علم النفس و الفلسفة',
+    'تاريخ و جغرافيا',
+    'الرياضيات',
+    'الكيمياء و الفيزياء',
+    'الأحياء و الجيولوجيا',
+    'الحاسوب',
+    'التربية البدنية',
+    'التربية الفنية',
+    'التربية الموسيقية',
+    'اخرى',
+  ];
 
   const DAYS = [
     { key: 0, label: 'الأحد' },
@@ -1379,6 +1401,49 @@
       } finally {
         location.reload();
       }
+    });
+  }
+
+  // ---------- Teacher settings (اسم المعلم وقسمه العلمي) ----------
+  const teacherSettingsBtn = document.getElementById('teacherSettingsBtn');
+  const teacherSettingsModal = document.getElementById('teacherSettingsModal');
+  const teacherSettingsForm = document.getElementById('teacherSettingsForm');
+  const teacherNameInput = document.getElementById('teacherNameInput');
+  const closeTeacherSettingsModalBtn = document.getElementById('closeTeacherSettingsModalBtn');
+  const cancelTeacherSettingsBtn = document.getElementById('cancelTeacherSettingsBtn');
+  const teacherDepartmentSelect = makeCustomSelect('teacherDepartment');
+
+  let teacherSettingsOpenedSnapshot = null;
+
+  function openTeacherSettingsModal() {
+    teacherNameInput.value = localStorage.getItem(TEACHER_NAME_KEY) || '';
+    teacherDepartmentSelect.populate(DEPARTMENTS, localStorage.getItem(TEACHER_DEPARTMENT_KEY) || '', 'اختر القسم', true, false);
+    teacherSettingsModal.hidden = false;
+    teacherSettingsOpenedSnapshot = `${teacherNameInput.value} ${teacherDepartmentSelect.value}`;
+  }
+
+  function closeTeacherSettingsModal() {
+    teacherSettingsModal.hidden = true;
+  }
+
+  function closeTeacherSettingsModalIfConfirmed() {
+    const current = `${teacherNameInput.value} ${teacherDepartmentSelect.value}`;
+    if (current !== teacherSettingsOpenedSnapshot) {
+      if (!confirm('لديك تعديل لم يُحفظ. إذا أغلقت الآن، سيُفقد هذا التعديل. هل تريد المتابعة؟')) return;
+    }
+    closeTeacherSettingsModal();
+  }
+
+  if (teacherSettingsBtn) teacherSettingsBtn.addEventListener('click', openTeacherSettingsModal);
+  if (closeTeacherSettingsModalBtn) closeTeacherSettingsModalBtn.addEventListener('click', closeTeacherSettingsModalIfConfirmed);
+  if (cancelTeacherSettingsBtn) cancelTeacherSettingsBtn.addEventListener('click', closeTeacherSettingsModalIfConfirmed);
+
+  if (teacherSettingsForm) {
+    teacherSettingsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      localStorage.setItem(TEACHER_NAME_KEY, teacherNameInput.value.trim());
+      localStorage.setItem(TEACHER_DEPARTMENT_KEY, teacherDepartmentSelect.value);
+      closeTeacherSettingsModal();
     });
   }
 
