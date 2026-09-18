@@ -1544,7 +1544,7 @@
   // own form. Decoded from a real pre-filled link عبدالله shared, not
   // guessed — a choice-type field's value arrives JSON-quoted
   // (e.g. `"12 علمي 1"`), a free-text field's doesn't.
-  const FORMS_DEPARTMENT = 'علم النفس والفلسفة';
+  const FORMS_DEPARTMENT = 'علم النفس و الفلسفة';
   const FORMS_TEACHER_NAME = 'عبدالله فيصل الشمري';
   const FORMS_FIELD_ROOM = 'rbf50dda6c3c14e2bb9b18e48472dce29';
   const FORMS_FIELD_PERIOD = 'r6460c5b5c87e48f38dd3babf04c98b18';
