@@ -253,6 +253,7 @@
           status: statusOf(entry) || 'present',
           participation: entry.participation || null,
           notebookMissing: entry.notebookMissing === true,
+          bookMissing: entry.bookMissing === true,
           behavior: entry.behavior || null,
         };
       });
@@ -285,6 +286,7 @@
         status: d.status || 'present',
         participation: d.participation || null,
         notebookMissing: d.notebookMissing ? true : null,
+        bookMissing: d.bookMissing ? true : null,
         behavior: d.behavior || null,
       };
     });
@@ -778,7 +780,7 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['#', 'اسم الطالب', 'الغياب', 'المشاركة', 'الدفتر', 'السلوك', 'إحصائية الحضور والغياب'].forEach((label, i) => {
+      ['#', 'اسم الطالب', 'الغياب', 'المشاركة', 'السلوك', 'الدفتر', 'الكتاب', 'إحصائية الحضور والغياب'].forEach((label, i) => {
         const th = document.createElement('th');
         th.textContent = label;
         if (i === 0) th.className = 'attendance-number-col';
@@ -789,10 +791,10 @@
       table.appendChild(thead);
 
       // Once the teacher is done recording a given column (حاضر/غائب,
-      // المشاركة, الدفتر, السلوك), that one column specifically is rarely
-      // touched again — each of these four gets its own fold chip here,
-      // so any combination can be tucked away independently instead of an
-      // all-or-nothing switch. The chips live outside the table (not on
+      // المشاركة, السلوك, الدفتر, الكتاب), that one column specifically is
+      // rarely touched again — each of these five gets its own fold chip
+      // here, so any combination can be tucked away independently instead
+      // of an all-or-nothing switch. The chips live outside the table (not on
       // each <th>) because a column has to hide its <th> together with
       // its <td>s: CSS tables don't leave a "gap" for a cell hidden in
       // just one row — every other cell in that row shifts left to fill
@@ -806,7 +808,7 @@
       // tomorrow's.
       const foldChipsRow = document.createElement('div');
       foldChipsRow.className = 'column-fold-chips';
-      [[2, 'الغياب'], [3, 'المشاركة'], [4, 'الدفتر'], [5, 'السلوك']].forEach(([colIndex, label]) => {
+      [[2, 'الغياب'], [3, 'المشاركة'], [4, 'السلوك'], [5, 'الدفتر'], [6, 'الكتاب']].forEach(([colIndex, label]) => {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'column-fold-chip';
@@ -969,21 +971,6 @@
     partTd.appendChild(partGroup);
     tr.appendChild(partTd);
 
-    // Notebook: default assumption is that the student has it — the
-    // button only marks the exception (didn't bring it), same pattern
-    // as attendance defaulting to حاضر.
-    const notebookTd = document.createElement('td');
-    const notebookGroup = document.createElement('div');
-    notebookGroup.className = 'control-group';
-    const notebookBtn = pillBtn('لم يحضر الدفتر', entry.notebookMissing === true, 'active-absent', () => {
-      entry.notebookMissing = !entry.notebookMissing;
-      notebookBtn.className = 'pill-btn' + (entry.notebookMissing ? ' active-absent' : '');
-      onChange();
-    });
-    notebookGroup.appendChild(notebookBtn);
-    notebookTd.appendChild(notebookGroup);
-    tr.appendChild(notebookTd);
-
     // Behavior (toggle: click the active one again to unset)
     const behaviorTd = document.createElement('td');
     const behaviorGroup = document.createElement('div');
@@ -1000,6 +987,26 @@
     });
     behaviorTd.appendChild(behaviorGroup);
     tr.appendChild(behaviorTd);
+
+    // الدفتر والكتاب: مؤشر يومي فقط (نسي إحضاره اليوم أم لا) — الافتراض
+    // أن الطالب أحضرهما، والزر يعلّم الاستثناء فقط، بنفس أسلوب الحضور
+    // الافتراضي بـ"حاضر". لا علاقة لهما بخانة "تقرير الدفتر" النصية
+    // الحرة في صفحة التقارير، التي يكتبها المعلم يدويًا بشكل مستقل.
+    function missingItemTd(fieldKey) {
+      const td = document.createElement('td');
+      const group = document.createElement('div');
+      group.className = 'control-group';
+      const btn = pillBtn('ناقص', entry[fieldKey] === true, 'active-absent', () => {
+        entry[fieldKey] = !entry[fieldKey];
+        btn.className = 'pill-btn' + (entry[fieldKey] ? ' active-absent' : '');
+        onChange();
+      });
+      group.appendChild(btn);
+      td.appendChild(group);
+      return td;
+    }
+    tr.appendChild(missingItemTd('notebookMissing'));
+    tr.appendChild(missingItemTd('bookMissing'));
 
     updateStats();
     tr.appendChild(statsTd);

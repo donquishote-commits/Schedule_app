@@ -1099,7 +1099,7 @@ body.zoomed-session main {
    shifted left to fill the gap (CSS tables don't preserve a blank slot
    for one hidden cell in a single row), which misaligned that row
    against the header above it. nth-child position matches the <th>
-   build order in JS: 3=الغياب, 4=المشاركة, 5=الدفتر, 6=السلوك. */
+   build order in JS: 3=الغياب, 4=المشاركة, 5=السلوك, 6=الدفتر, 7=الكتاب. */
 .attendance-table.hide-col-2 th:nth-child(3),
 .attendance-table.hide-col-2 td:nth-child(3),
 .attendance-table.hide-col-3 th:nth-child(4),
@@ -1107,7 +1107,9 @@ body.zoomed-session main {
 .attendance-table.hide-col-4 th:nth-child(5),
 .attendance-table.hide-col-4 td:nth-child(5),
 .attendance-table.hide-col-5 th:nth-child(6),
-.attendance-table.hide-col-5 td:nth-child(6) {
+.attendance-table.hide-col-5 td:nth-child(6),
+.attendance-table.hide-col-6 th:nth-child(7),
+.attendance-table.hide-col-6 td:nth-child(7) {
   display: none;
 }
 
