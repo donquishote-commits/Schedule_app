@@ -9,10 +9,13 @@
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
   const FORMS_URL_KEY = 'schedule_app_forms_url_v1';
 
-  // Must match assets/app.js's SUBJECTS/ROOMS/SUBJECT_ROOMS — used by the
-  // "إضافة حصة لهذا اليوم" (تغطية) form, which needs the same subject/room
-  // pickers as the real schedule editor.
-  const SUBJECTS = ['الفلسفة', 'علم النفس', 'الدستور', 'دولة الكويت', 'الصحة النفسية'];
+  // Must match assets/app.js's SUBJECTS_BY_DEPARTMENT/ROOMS/SUBJECT_ROOMS —
+  // used by the "إضافة حصة لهذا اليوم" (تغطية) form, which needs the same
+  // subject/room pickers as the real schedule editor.
+  const SUBJECTS_BY_DEPARTMENT = {
+    'علم النفس و الفلسفة': ['الفلسفة', 'علم النفس', 'الدستور', 'دولة الكويت', 'الصحة النفسية'],
+  };
+  const SUBJECTS = Object.values(SUBJECTS_BY_DEPARTMENT).flat();
   const ROOMS = [
     '10-1', '10-2', '10-3', '10-4', '10-5', '10-6', '10-7', '10-8', '10-9',
     '11 د 1', '11 د 2', '11 د 3',
