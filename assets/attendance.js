@@ -595,7 +595,7 @@
       formsBtn.setAttribute('aria-label', 'فتح نموذج تسجيل الغياب');
       formsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openFormsLink();
+        openFormsLink(session, roster, draft);
       });
       buttons.push(formsBtn);
     }
@@ -1537,12 +1537,56 @@
   }
 
   // ---------- Forms link (رابط نموذج تسجيل الغياب) ----------
-  function openFormsLink() {
+  // Field ids (Microsoft Forms' own "rXXXXXXXX..." names) and fixed values
+  // specific to عبدالله's "Class Attendance" form — hardcoded for now to
+  // get the basic case working; once this proves out, teacher name/قسم
+  // become settings so colleagues in other أقسام can point this at their
+  // own form. Decoded from a real pre-filled link عبدالله shared, not
+  // guessed — a choice-type field's value arrives JSON-quoted
+  // (e.g. `"12 علمي 1"`), a free-text field's doesn't.
+  const FORMS_DEPARTMENT = 'علم النفس والفلسفة';
+  const FORMS_TEACHER_NAME = 'عبدالله فيصل الشمري';
+  const FORMS_FIELD_ROOM = 'rbf50dda6c3c14e2bb9b18e48472dce29';
+  const FORMS_FIELD_PERIOD = 'r6460c5b5c87e48f38dd3babf04c98b18';
+  const FORMS_FIELD_ABSENTEES = 'r0914b7730657458684279968998575e9';
+  const FORMS_FIELD_DEPARTMENT = 'r949d9d00eceb4fd69a9bdf621b8a3f64';
+  const FORMS_FIELD_TEACHER = 'r9eb2a5d4cc6743f79df2d2f3c926cec4';
+
+  // Our own room codes abbreviate the track ("12 ع 4" / "12 د 2"), but
+  // the form spells it out ("12 علمي 4" / "12 أدبي 2") — عاشر rooms
+  // ("10-4") already match exactly, so those pass through unchanged.
+  function formRoomName(room) {
+    const m = (room || '').trim().match(/^(\d+)\s+([عد])\s+(\d+)$/);
+    if (!m) return room;
+    const [, grade, track, num] = m;
+    return `${grade} ${track === 'ع' ? 'علمي' : 'أدبي'} ${num}`;
+  }
+
+  // Reads the same in-progress draft copyAbsentees() does, so the form
+  // opens pre-filled with whatever's marked right now, before "حفظ
+  // الغياب" — no reason to make the teacher save first just to submit.
+  function buildPrefilledFormsUrl(session, roster, draft) {
+    let url;
+    try {
+      url = new URL(formsUrl);
+    } catch (e) {
+      return null;
+    }
+    const absentees = (roster || []).filter(name => draft && draft[name] && draft[name].status === 'absent');
+    url.searchParams.set(FORMS_FIELD_ROOM, JSON.stringify(formRoomName(session.room)));
+    url.searchParams.set(FORMS_FIELD_PERIOD, JSON.stringify(String(session.periodKey)));
+    url.searchParams.set(FORMS_FIELD_ABSENTEES, absentees.join('\n'));
+    url.searchParams.set(FORMS_FIELD_DEPARTMENT, JSON.stringify(FORMS_DEPARTMENT));
+    url.searchParams.set(FORMS_FIELD_TEACHER, FORMS_TEACHER_NAME);
+    return url.toString();
+  }
+
+  function openFormsLink(session, roster, draft) {
     if (!formsUrl) {
       alert('لم تُحدّد رابط نموذج تسجيل الغياب بعد — حدده من قائمة ⚙️ أولًا.');
       return;
     }
-    window.open(formsUrl, '_blank', 'noopener');
+    window.open(buildPrefilledFormsUrl(session, roster, draft) || formsUrl, '_blank', 'noopener');
   }
 
   const formsLinkBtn = document.getElementById('formsLinkBtn');
