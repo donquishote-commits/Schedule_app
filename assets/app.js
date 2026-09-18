@@ -314,6 +314,16 @@
     return tempSessions.some(t => t.type === 'swap' && t.sourceClassId === classId && t.sourceDate === dateISO);
   }
 
+  // True if dateISO×periodKey is already occupied by a temp session or by
+  // a recurring class's own (non-swapped-away) occurrence — used to
+  // validate a swap's target date the same way صفحة المتابعة اليومية does.
+  function slotTakenOnDate(dateISO, periodKey) {
+    if (tempSessionForDate(dateISO, periodKey)) return true;
+    const weekday = isoToDate(dateISO).getDay();
+    const existing = findClass(weekday, periodKey);
+    return !!(existing && !isClassSwappedAwayOnDate(existing.id, dateISO));
+  }
+
   // ---------- Grid rendering ----------
   const gridEl = document.getElementById('grid');
   const weekLabelEl = document.getElementById('weekLabel');
@@ -390,7 +400,7 @@
           td.appendChild(renderTempBlock(tempMatch));
         } else if (existing) {
           const swappedAway = isClassSwappedAwayOnDate(existing.id, cellDate);
-          td.appendChild(renderClassBlock(existing, { swappedAway }));
+          td.appendChild(renderClassBlock(existing, { swappedAway, cellDate }));
         } else {
           td.addEventListener('click', () => openCellTypeModal(day.key, period.key, cellDate));
         }
@@ -494,7 +504,7 @@
 
     block.addEventListener('click', (e) => {
       e.stopPropagation();
-      openEditModal(c.id);
+      openEditModal(c.id, opts && opts.cellDate);
     });
     return block;
   }
@@ -508,6 +518,12 @@
   function renderTempBlock(t) {
     const block = document.createElement('div');
     block.className = 'swap-block';
+
+    if (t.note) {
+      const dot = document.createElement('span');
+      dot.className = 'note-dot';
+      block.appendChild(dot);
+    }
 
     block.appendChild(buildSubjectLine(t.subject, t.type === 'swap' ? '🔁' : '➕'));
 
@@ -577,6 +593,9 @@
     }
     if (t.type === 'cover' && t.teacherName) {
       addDetailRow('الأستاذ', t.teacherName);
+    }
+    if (t.note) {
+      addDetailRow('ملاحظة', t.note);
     }
     tempDetailsManageLink.href = `attendance.html?date=${encodeURIComponent(t.date)}`;
     tempDetailsModal.hidden = false;
@@ -716,6 +735,7 @@
   const quickLinks = document.getElementById('quickLinks');
   const quickLinkStudents = document.getElementById('quickLinkStudents');
   const quickLinkReports = document.getElementById('quickLinkReports');
+  const quickLinkSwapBtn = document.getElementById('quickLinkSwapBtn');
   const notesSection = document.getElementById('notesSection');
   const notesList = document.getElementById('notesList');
   const noteForm = document.getElementById('noteForm');
@@ -934,8 +954,15 @@
     closeModal();
   }
 
+  // The exact calendar date of the occurrence تعديل الحصة was opened
+  // from (the grid cell clicked, in the week currently being viewed) —
+  // null when adding a new class, since there's no specific occurrence
+  // yet. Used only to scope "🔁 تبديل الحصة" to that one date.
+  let editingOccurrenceDate = null;
+
   function openAddModal(dayKey, periodKey) {
     editingId = null;
+    editingOccurrenceDate = null;
     modalTitle.textContent = 'إضافة حصة';
     deleteBtn.hidden = true;
     quickLinks.hidden = true;
@@ -949,10 +976,11 @@
     openModal();
   }
 
-  function openEditModal(id) {
+  function openEditModal(id, cellDate) {
     const c = classes.find(x => x.id === id);
     if (!c) return;
     editingId = id;
+    editingOccurrenceDate = cellDate || null;
     modalTitle.textContent = 'تعديل الحصة';
     deleteBtn.hidden = false;
     notesSection.hidden = false;
@@ -962,14 +990,21 @@
     // this class's roster/report instead of making the teacher navigate
     // and find it manually. Only meaningful once a room is actually set.
     const room = (c.room || '').trim();
+    quickLinkStudents.hidden = !room;
+    quickLinkReports.hidden = !room;
     if (room) {
-      quickLinks.hidden = false;
       const encoded = encodeURIComponent(room);
       quickLinkStudents.href = `students.html?class=${encoded}`;
       quickLinkReports.href = `reports.html?class=${encoded}`;
-    } else {
-      quickLinks.hidden = true;
     }
+
+    // تبديل needs a specific occurrence date (the week cell actually
+    // clicked) and only makes sense if that exact date hasn't already
+    // been swapped away.
+    const canSwap = !!(editingOccurrenceDate && !isClassSwappedAwayOnDate(c.id, editingOccurrenceDate));
+    quickLinkSwapBtn.hidden = !canSwap;
+
+    quickLinks.hidden = !(room || canSwap);
 
     document.getElementById('classId').value = c.id;
     subjectSelect.populate(SUBJECTS, c.subject, 'اختر المادة', true);
@@ -1086,6 +1121,92 @@
     renderNotes(c);
     renderGrid();
     noteText.value = '';
+  });
+
+  // ---------- Swap a session to a different date (تبديل), opened from
+  // تعديل الحصة above — mirrors صفحة المتابعة اليومية's own swap flow. ----------
+  const swapModal = document.getElementById('swapModal');
+  const swapForm = document.getElementById('swapForm');
+  const swapDateInput = document.getElementById('swapDateInput');
+  const swapNoteInput = document.getElementById('swapNoteInput');
+  const swapHintText = document.getElementById('swapHintText');
+  const closeSwapModalBtn = document.getElementById('closeSwapModalBtn');
+  const cancelSwapBtn = document.getElementById('cancelSwapBtn');
+  let swapSource = null; // { id, subject, room, periodKey, sourceDate }
+  let swapOpenedSnapshot = '';
+
+  function swapFormSnapshot() {
+    return `${swapDateInput.value} ${swapNoteInput.value}`;
+  }
+
+  function openSwapModal() {
+    const c = classes.find(x => x.id === editingId);
+    if (!c || !editingOccurrenceDate) return;
+    closeModal();
+    swapSource = {
+      id: c.id, subject: c.subject, room: c.room,
+      periodKey: c.periodKey, sourceDate: editingOccurrenceDate,
+    };
+    swapHintText.textContent = `ستُنقل حصة "${c.subject}"${c.room ? ` (${isolateLTR(c.room)})` : ''} من هذا اليوم إلى تاريخ آخر — بنفس المادة والصف والحصة. تختفي من ${editingOccurrenceDate} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
+    swapDateInput.value = '';
+    swapDateInput.min = todayISO();
+    swapNoteInput.value = '';
+    swapModal.hidden = false;
+    swapOpenedSnapshot = swapFormSnapshot();
+  }
+
+  function closeSwapModal() {
+    swapModal.hidden = true;
+    swapForm.reset();
+    swapSource = null;
+  }
+
+  function closeSwapModalIfConfirmed() {
+    if (swapFormSnapshot() !== swapOpenedSnapshot) {
+      if (!confirm('لديك بيانات مُدخلة لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه العملية. هل تريد المتابعة؟')) return;
+    }
+    closeSwapModal();
+  }
+
+  if (quickLinkSwapBtn) quickLinkSwapBtn.addEventListener('click', openSwapModal);
+  closeSwapModalBtn.addEventListener('click', closeSwapModalIfConfirmed);
+  cancelSwapBtn.addEventListener('click', closeSwapModalIfConfirmed);
+
+  swapForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!swapSource) return;
+    const targetDate = swapDateInput.value;
+    if (!targetDate) {
+      alert('اختر التاريخ الجديد أولًا.');
+      return;
+    }
+    if (targetDate === swapSource.sourceDate) {
+      alert('اخترت نفس تاريخ الحصة الأصلية — اختر تاريخًا مختلفًا.');
+      return;
+    }
+    const targetWeekday = isoToDate(targetDate).getDay();
+    if (!DAYS.some(d => d.key === targetWeekday)) {
+      alert('لا يمكن جدولة حصة في يوم عطلة نهاية الأسبوع (الجمعة أو السبت).');
+      return;
+    }
+    if (slotTakenOnDate(targetDate, swapSource.periodKey)) {
+      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا آخر.');
+      return;
+    }
+    tempSessions.push({
+      id: uid(),
+      type: 'swap',
+      date: targetDate,
+      periodKey: swapSource.periodKey,
+      subject: swapSource.subject,
+      room: swapSource.room,
+      sourceClassId: swapSource.id,
+      sourceDate: swapSource.sourceDate,
+      note: swapNoteInput.value.trim() || null,
+    });
+    saveTempSessions();
+    closeSwapModal();
+    renderGrid();
   });
 
   // ---------- Export / Import ----------

@@ -97,6 +97,7 @@
     <div id="quickLinks" class="quick-links" hidden>
       <a id="quickLinkStudents" href="#" class="btn btn-ghost btn-small">📋 قائمة الفصل</a>
       <a id="quickLinkReports" href="#" class="btn btn-ghost btn-small">📊 تقرير الفصل</a>
+      <button type="button" id="quickLinkSwapBtn" class="btn btn-ghost btn-small">🔁 تبديل الحصة</button>
     </div>
 
     <div id="notesSection" class="notes-section" hidden>
@@ -162,8 +163,9 @@
 </div>
 
 <!-- Read-only details for a temporary session (تبديل/تغطية) cell in the
-     grid — created and managed from صفحة المتابعة اليومية, this just
-     shows what it is before jumping there to change anything. -->
+     grid — a تبديل can now be created from here too (see quickLinkSwapBtn
+     above), but this popup itself just shows what an existing one is,
+     with a link through to صفحة المتابعة اليومية for anything else. -->
 <div id="tempDetailsModal" class="modal-backdrop" hidden>
   <div class="modal">
     <div class="modal-header">
@@ -202,6 +204,33 @@
         <div class="spacer"></div>
         <button type="button" id="cancelTeacherSettingsBtn" class="btn btn-ghost">إلغاء</button>
         <button type="submit" class="btn btn-primary">حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Swap a single occurrence of a recurring class to a different date —
+     opened from خانة "🔁 تبديل الحصة" in تعديل الحصة above, for the exact
+     date of the week currently being viewed. Mirrors صفحة المتابعة
+     اليومية's own swap dialog. -->
+<div id="swapModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>تبديل الحصة</h2>
+      <button type="button" class="icon-btn" id="closeSwapModalBtn" aria-label="إغلاق">&times;</button>
+    </div>
+    <form id="swapForm">
+      <p class="hint-text" id="swapHintText"></p>
+      <label class="form-field">التاريخ الجديد
+        <input type="date" id="swapDateInput" required>
+      </label>
+      <label class="form-field">ملاحظة (اختياري)
+        <textarea id="swapNoteInput" rows="2" placeholder="أضف ملاحظة عن سبب التبديل أو أي تفاصيل تخص هذه الحصة..."></textarea>
+      </label>
+      <div class="modal-footer">
+        <div class="spacer"></div>
+        <button type="button" id="cancelSwapBtn" class="btn btn-ghost">إلغاء</button>
+        <button type="submit" class="btn btn-primary">تبديل</button>
       </div>
     </form>
   </div>

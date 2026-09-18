@@ -379,7 +379,8 @@ main {
   flex-shrink: 0;
 }
 
-.class-block .note-dot {
+.class-block .note-dot,
+.swap-block .note-dot {
   position: absolute;
   top: 4px;
   left: 4px;
@@ -388,6 +389,11 @@ main {
   border-radius: 50%;
   background: var(--text);
   opacity: 0.6;
+}
+
+.swap-block .note-dot {
+  background: var(--swap-text);
+  opacity: 0.8;
 }
 
 .empty-cell-hint {
@@ -1660,6 +1666,20 @@ body.zoomed-session main {
 
 .report-text-preview.empty {
   color: var(--text-muted);
+}
+
+#swapForm textarea {
+  width: 100%;
+  min-height: 60px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface);
+  resize: vertical;
 }
 
 .note-textarea {

@@ -643,6 +643,14 @@
       titleRow.appendChild(fromSpan);
     }
 
+    if (session.type === 'swap' && session.note) {
+      const noteSpan = document.createElement('span');
+      noteSpan.className = 'session-meta session-note-indicator';
+      noteSpan.textContent = '📝';
+      noteSpan.title = session.note;
+      titleRow.appendChild(noteSpan);
+    }
+
     return titleRow;
   }
 
@@ -1775,6 +1783,7 @@
   const swapModal = document.getElementById('swapModal');
   const swapForm = document.getElementById('swapForm');
   const swapDateInput = document.getElementById('swapDateInput');
+  const swapNoteInput = document.getElementById('swapNoteInput');
   const swapHintText = document.getElementById('swapHintText');
   const closeSwapModalBtn = document.getElementById('closeSwapModalBtn');
   const cancelSwapBtn = document.getElementById('cancelSwapBtn');
@@ -1782,7 +1791,7 @@
   let swapOpenedSnapshot = '';
 
   function swapFormSnapshot() {
-    return swapDateInput.value;
+    return `${swapDateInput.value} ${swapNoteInput.value}`;
   }
 
   function openSwapModal(session, dateISO) {
@@ -1793,6 +1802,7 @@
     swapHintText.textContent = `ستُنقل حصة "${session.subject}"${session.room ? ` (${isolateLTR(session.room)})` : ''} من هذا اليوم إلى تاريخ آخر — بنفس المادة والصف والحصة. تختفي من ${dateISO} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
     swapDateInput.value = '';
     swapDateInput.min = todayISO();
+    swapNoteInput.value = '';
     swapModal.hidden = false;
     swapOpenedSnapshot = swapFormSnapshot();
   }
@@ -1805,7 +1815,7 @@
 
   function closeSwapModalIfConfirmed() {
     if (swapFormSnapshot() !== swapOpenedSnapshot) {
-      if (!confirm('لديك تاريخ مُدخل لم يُحفظ. إذا أغلقت الآن، ستُفقد هذه العملية. هل تريد المتابعة؟')) return;
+      if (!confirm('لديك بيانات مُدخلة لم تُحفظ. إذا أغلقت الآن، ستُفقد هذه العملية. هل تريد المتابعة؟')) return;
     }
     closeSwapModal();
   }
@@ -1843,6 +1853,7 @@
       room: swapSource.room,
       sourceClassId: swapSource.id,
       sourceDate: swapSource.sourceDate,
+      note: swapNoteInput.value.trim() || null,
     });
     saveTempSessions();
     closeSwapModal();
