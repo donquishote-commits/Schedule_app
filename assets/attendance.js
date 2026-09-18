@@ -1565,20 +1565,30 @@
   // Reads the same in-progress draft copyAbsentees() does, so the form
   // opens pre-filled with whatever's marked right now, before "حفظ
   // الغياب" — no reason to make the teacher save first just to submit.
+  // encodeURIComponent — not URLSearchParams.set(), which encodes spaces
+  // as "+" per the application/x-www-form-urlencoded convention — since
+  // Microsoft Forms decodes with decodeURIComponent and reads a literal
+  // "+" character rather than a space, breaking both free-text spacing
+  // and exact-match dropdown selection (room/قسم values contain spaces).
   function buildPrefilledFormsUrl(session, roster, draft) {
-    let url;
+    let base;
     try {
-      url = new URL(formsUrl);
+      base = new URL(formsUrl);
     } catch (e) {
       return null;
     }
     const absentees = (roster || []).filter(name => draft && draft[name] && draft[name].status === 'absent');
-    url.searchParams.set(FORMS_FIELD_ROOM, JSON.stringify(formRoomName(session.room)));
-    url.searchParams.set(FORMS_FIELD_PERIOD, JSON.stringify(String(session.periodKey)));
-    url.searchParams.set(FORMS_FIELD_ABSENTEES, absentees.join('\n'));
-    url.searchParams.set(FORMS_FIELD_DEPARTMENT, JSON.stringify(FORMS_DEPARTMENT));
-    url.searchParams.set(FORMS_FIELD_TEACHER, FORMS_TEACHER_NAME);
-    return url.toString();
+    const params = new Map();
+    base.searchParams.forEach((value, key) => params.set(key, value));
+    params.set(FORMS_FIELD_ROOM, JSON.stringify(formRoomName(session.room)));
+    params.set(FORMS_FIELD_PERIOD, JSON.stringify(String(session.periodKey)));
+    params.set(FORMS_FIELD_ABSENTEES, absentees.join('\n'));
+    params.set(FORMS_FIELD_DEPARTMENT, JSON.stringify(FORMS_DEPARTMENT));
+    params.set(FORMS_FIELD_TEACHER, FORMS_TEACHER_NAME);
+    const query = Array.from(params.entries())
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+    return `${base.origin}${base.pathname}?${query}`;
   }
 
   function openFormsLink(session, roster, draft) {
