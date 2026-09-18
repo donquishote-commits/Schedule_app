@@ -1783,6 +1783,7 @@
   const swapModal = document.getElementById('swapModal');
   const swapForm = document.getElementById('swapForm');
   const swapDateInput = document.getElementById('swapDateInput');
+  const swapPeriodSelect = makeCustomSelect('swapPeriod');
   const swapNoteInput = document.getElementById('swapNoteInput');
   const swapHintText = document.getElementById('swapHintText');
   const closeSwapModalBtn = document.getElementById('closeSwapModalBtn');
@@ -1790,18 +1791,29 @@
   let swapSource = null; // { id, subject, room, periodKey, sourceDate }
   let swapOpenedSnapshot = '';
 
+  swapPeriodSelect.setEntries(PERIODS.map(p => ({
+    value: String(p.key),
+    label: `${p.label} (${isolateLTR(`${to12(p.start)} - ${to12(p.end)}`)})`,
+    shortLabel: p.label,
+  })));
+
   function swapFormSnapshot() {
-    return `${swapDateInput.value} ${swapNoteInput.value}`;
+    return [swapDateInput.value, swapPeriodSelect.value, swapNoteInput.value].join('\u0000');
   }
 
+  // Teachers often swap a session to a different حصة as well as a
+  // different day (covering a colleague's period, say), not just the same
+  // period on another date — so الحصة is its own editable field here,
+  // defaulting to the session's own period but changeable.
   function openSwapModal(session, dateISO) {
     swapSource = {
       id: session.id, subject: session.subject, room: session.room,
       periodKey: session.periodKey, sourceDate: dateISO,
     };
-    swapHintText.textContent = `ستُنقل حصة "${session.subject}"${session.room ? ` (${isolateLTR(session.room)})` : ''} من هذا اليوم إلى تاريخ آخر — بنفس المادة والصف والحصة. تختفي من ${dateISO} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
+    swapHintText.textContent = `ستُنقل حصة "${session.subject}"${session.room ? ` (${isolateLTR(session.room)})` : ''} من هذا اليوم إلى تاريخ وحصة آخرين — بنفس المادة والصف. تختفي من ${dateISO} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
     swapDateInput.value = '';
     swapDateInput.min = todayISO();
+    swapPeriodSelect.value = String(session.periodKey);
     swapNoteInput.value = '';
     swapModal.hidden = false;
     swapOpenedSnapshot = swapFormSnapshot();
@@ -1831,8 +1843,9 @@
       alert('اختر التاريخ الجديد أولًا.');
       return;
     }
-    if (targetDate === swapSource.sourceDate) {
-      alert('اخترت نفس تاريخ الحصة الأصلية — اختر تاريخًا مختلفًا.');
+    const targetPeriodKey = Number(swapPeriodSelect.value);
+    if (targetDate === swapSource.sourceDate && targetPeriodKey === swapSource.periodKey) {
+      alert('اخترت نفس تاريخ وحصة الحصة الأصلية — غيّر التاريخ أو الحصة.');
       return;
     }
     const targetWeekday = isoToDate(targetDate).getDay();
@@ -1840,15 +1853,15 @@
       alert('لا يمكن جدولة حصة في يوم عطلة نهاية الأسبوع (الجمعة أو السبت).');
       return;
     }
-    if (periodTakenOnDate(targetDate, swapSource.periodKey, null)) {
-      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا آخر.');
+    if (periodTakenOnDate(targetDate, targetPeriodKey, null)) {
+      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا أو حصة أخرى.');
       return;
     }
     tempSessions.push({
       id: uid(),
       type: 'swap',
       date: targetDate,
-      periodKey: swapSource.periodKey,
+      periodKey: targetPeriodKey,
       subject: swapSource.subject,
       room: swapSource.room,
       sourceClassId: swapSource.id,

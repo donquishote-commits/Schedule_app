@@ -1128,6 +1128,7 @@
   const swapModal = document.getElementById('swapModal');
   const swapForm = document.getElementById('swapForm');
   const swapDateInput = document.getElementById('swapDateInput');
+  const swapPeriodSelect = makeCustomSelect('swapPeriod');
   const swapNoteInput = document.getElementById('swapNoteInput');
   const swapHintText = document.getElementById('swapHintText');
   const closeSwapModalBtn = document.getElementById('closeSwapModalBtn');
@@ -1135,10 +1136,20 @@
   let swapSource = null; // { id, subject, room, periodKey, sourceDate }
   let swapOpenedSnapshot = '';
 
+  swapPeriodSelect.setEntries(PERIODS.map(p => ({
+    value: String(p.key),
+    label: `${p.label} (${isolateLTR(`${to12(p.start)} - ${to12(p.end)}`)})`,
+    shortLabel: p.label,
+  })));
+
   function swapFormSnapshot() {
-    return `${swapDateInput.value} ${swapNoteInput.value}`;
+    return [swapDateInput.value, swapPeriodSelect.value, swapNoteInput.value].join('\u0000');
   }
 
+  // Teachers often swap a session to a different حصة as well as a
+  // different day (covering a colleague's period, say), not just the same
+  // period on another date — so الحصة is its own editable field here,
+  // defaulting to the class's own period but changeable.
   function openSwapModal() {
     const c = classes.find(x => x.id === editingId);
     if (!c || !editingOccurrenceDate) return;
@@ -1147,9 +1158,10 @@
       id: c.id, subject: c.subject, room: c.room,
       periodKey: c.periodKey, sourceDate: editingOccurrenceDate,
     };
-    swapHintText.textContent = `ستُنقل حصة "${c.subject}"${c.room ? ` (${isolateLTR(c.room)})` : ''} من هذا اليوم إلى تاريخ آخر — بنفس المادة والصف والحصة. تختفي من ${editingOccurrenceDate} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
+    swapHintText.textContent = `ستُنقل حصة "${c.subject}"${c.room ? ` (${isolateLTR(c.room)})` : ''} من هذا اليوم إلى تاريخ وحصة آخرين — بنفس المادة والصف. تختفي من ${editingOccurrenceDate} فقط؛ باقي أسابيعها المعتادة لا تتأثر.`;
     swapDateInput.value = '';
     swapDateInput.min = todayISO();
+    swapPeriodSelect.value = String(c.periodKey);
     swapNoteInput.value = '';
     swapModal.hidden = false;
     swapOpenedSnapshot = swapFormSnapshot();
@@ -1180,8 +1192,9 @@
       alert('اختر التاريخ الجديد أولًا.');
       return;
     }
-    if (targetDate === swapSource.sourceDate) {
-      alert('اخترت نفس تاريخ الحصة الأصلية — اختر تاريخًا مختلفًا.');
+    const targetPeriodKey = Number(swapPeriodSelect.value);
+    if (targetDate === swapSource.sourceDate && targetPeriodKey === swapSource.periodKey) {
+      alert('اخترت نفس تاريخ وحصة الحصة الأصلية — غيّر التاريخ أو الحصة.');
       return;
     }
     const targetWeekday = isoToDate(targetDate).getDay();
@@ -1189,15 +1202,15 @@
       alert('لا يمكن جدولة حصة في يوم عطلة نهاية الأسبوع (الجمعة أو السبت).');
       return;
     }
-    if (slotTakenOnDate(targetDate, swapSource.periodKey)) {
-      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا آخر.');
+    if (slotTakenOnDate(targetDate, targetPeriodKey)) {
+      alert('هناك حصة أخرى في هذا الوقت بذلك التاريخ. اختر تاريخًا أو حصة أخرى.');
       return;
     }
     tempSessions.push({
       id: uid(),
       type: 'swap',
       date: targetDate,
-      periodKey: swapSource.periodKey,
+      periodKey: targetPeriodKey,
       subject: swapSource.subject,
       room: swapSource.room,
       sourceClassId: swapSource.id,
@@ -1547,7 +1560,7 @@
     teacherNameInput.value = localStorage.getItem(TEACHER_NAME_KEY) || '';
     teacherDepartmentSelect.populate(DEPARTMENTS, localStorage.getItem(TEACHER_DEPARTMENT_KEY) || '', 'اختر القسم', true, false);
     teacherSettingsModal.hidden = false;
-    teacherSettingsOpenedSnapshot = `${teacherNameInput.value} ${teacherDepartmentSelect.value}`;
+    teacherSettingsOpenedSnapshot = `${teacherNameInput.value}\u0000${teacherDepartmentSelect.value}`;
   }
 
   function closeTeacherSettingsModal() {
@@ -1555,7 +1568,7 @@
   }
 
   function closeTeacherSettingsModalIfConfirmed() {
-    const current = `${teacherNameInput.value} ${teacherDepartmentSelect.value}`;
+    const current = `${teacherNameInput.value}\u0000${teacherDepartmentSelect.value}`;
     if (current !== teacherSettingsOpenedSnapshot) {
       if (!confirm('لديك تعديل لم يُحفظ. إذا أغلقت الآن، سيُفقد هذا التعديل. هل تريد المتابعة؟')) return;
     }
