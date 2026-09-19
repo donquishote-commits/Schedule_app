@@ -172,7 +172,7 @@
   // the week-nav buttons only for the current session. (startOfWeek/
   // todayISO are function declarations further down, hoisted, so calling
   // them here at module init time is safe.)
-  let viewedWeekStart = startOfWeek(todayISO());
+  let viewedWeekStart = defaultWeekStart();
 
   // ---------- Persistence ----------
   function loadClasses() {
@@ -252,6 +252,17 @@
     const d = isoToDate(iso);
     d.setDate(d.getDate() - d.getDay());
     return dateToISO(d);
+  }
+
+  // The week the schedule should default to opening on. Friday/Saturday
+  // are the weekend after the school week is already done, so once the
+  // week's last school day (Thursday) has passed we jump straight to next
+  // week instead of still showing the just-finished one.
+  function defaultWeekStart() {
+    const iso = todayISO();
+    const weekStart = startOfWeek(iso);
+    const day = isoToDate(iso).getDay();
+    return day === 5 || day === 6 ? addDays(weekStart, 7) : weekStart;
   }
 
   // No weekday name here — the grid cell's own column already shows
@@ -443,7 +454,7 @@
   }
   if (prevWeekBtn) prevWeekBtn.addEventListener('click', () => goToWeek(addDays(viewedWeekStart, -7)));
   if (nextWeekBtn) nextWeekBtn.addEventListener('click', () => goToWeek(addDays(viewedWeekStart, 7)));
-  if (thisWeekBtn) thisWeekBtn.addEventListener('click', () => goToWeek(startOfWeek(todayISO())));
+  if (thisWeekBtn) thisWeekBtn.addEventListener('click', () => goToWeek(defaultWeekStart()));
 
   // Builds the subject line as an icon span + text span (a flex row),
   // instead of one string with the icon typed inline — mixing a symbol
