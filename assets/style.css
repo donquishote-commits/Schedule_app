@@ -1251,32 +1251,15 @@ body.zoomed-session main {
     flex: 1;
   }
 
-  /* .topbar-stacked normally stacks the title+gear row above the nav
-     links row (two lines) — on a landscape phone that's a bigger bite
-     out of an already-short viewport than it needs to be, so this puts
-     both rows back side by side on one line while a session is zoomed. */
-  body.zoomed-session .topbar-stacked {
-    flex-direction: row;
-    padding: 8px 20px;
-  }
-  body.zoomed-session .topbar h1 {
-    font-size: 1.05rem;
-  }
-
-  /* The gear button has to stay pinned to the same corner regardless of
-     the title's length or how many nav links there are — .topbar-top
-     and .topbar-actions are only wrapper divs for grouping in markup,
-     not meaningful boxes of their own, so display:contents dissolves
-     them and lets their children (title, gear, and each nav link) sit
-     as direct siblings in one flex row; ordering the gear last then
-     pins it to the row's true far end (the left edge, in this RTL
-     layout) no matter what else is on the line. */
-  body.zoomed-session .topbar-top,
-  body.zoomed-session .topbar-actions {
-    display: contents;
-  }
-  body.zoomed-session .menu-wrap {
-    order: 99;
+  /* The site header (title, الجدول/قوائم الفصول/التقارير, ⚙️) eats into
+     an already-short landscape viewport for no real benefit while a
+     session is zoomed — the zoomed header above already carries its own
+     close/prev/next and the actions that actually matter mid-session.
+     Hidden only under this exact combination (landscape + zoomed), so
+     rotating back to portrait brings it straight back with nothing to
+     restore by hand. */
+  body.zoomed-session .topbar {
+    display: none;
   }
 }
 
