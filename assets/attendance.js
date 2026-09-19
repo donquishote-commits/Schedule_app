@@ -306,7 +306,7 @@
   }
 
   // ---------- Rendering ----------
-  const datePicker = document.getElementById('datePicker');
+  const datePicker = makeDatePicker('datePicker');
   const dayLabel = document.getElementById('dayLabel');
   const sessionsContainer = document.getElementById('sessionsContainer');
   const noScheduleState = document.getElementById('noScheduleState');
@@ -1790,7 +1790,8 @@
   // hooks into the same open/close-on-outside-click machinery via
   // _closeCustomSelect) so it drops into swapForm's existing code with no
   // special-casing beyond this constructor.
-  function makeDatePicker(id) {
+  function makeDatePicker(id, opts) {
+    const disableWeekends = !!(opts && opts.disableWeekends);
     const root = document.getElementById(id);
     root.classList.add('custom-select', 'date-picker');
     root.innerHTML = '';
@@ -1901,9 +1902,11 @@
       for (let day = 1; day <= daysInMonth; day++) {
         const dISO = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const weekday = new Date(viewYear, viewMonth, day).getDay();
-        // الجمعة/السبت غير قابلين للاختيار أصلًا — البرنامج لا يجدول
-        // حصصًا فيهما، فلا داعي يختارهما المعلم ليصطدم برسالة رفض لاحقًا.
-        const isWeekend = weekday === 5 || weekday === 6;
+        // الجمعة/السبت تُعطَّل فقط حيث لا معنى لاختيارها أصلًا (تبديل
+        // حصة) — البرنامج لا يجدول حصصًا فيهما، فلا داعي يختارهما
+        // المعلم ليصطدم برسالة رفض لاحقًا. أما تصفّح اليوميات نفسها
+        // (datePicker) فيسمح بأي تاريخ، تمامًا كما كان الحقل الأصلي.
+        const isWeekend = disableWeekends && (weekday === 5 || weekday === 6);
         const isBeforeMin = minValue && dISO < minValue;
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1976,7 +1979,7 @@
   // ---------- Swap a session to a different date (تبديل) ----------
   const swapModal = document.getElementById('swapModal');
   const swapForm = document.getElementById('swapForm');
-  const swapDateInput = makeDatePicker('swapDatePicker');
+  const swapDateInput = makeDatePicker('swapDatePicker', { disableWeekends: true });
   const swapPeriodSelect = makeCustomSelect('swapPeriod');
   const swapNoteInput = document.getElementById('swapNoteInput');
   const swapHintText = document.getElementById('swapHintText');

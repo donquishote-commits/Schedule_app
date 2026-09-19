@@ -1039,14 +1039,15 @@ main {
   border-radius: 50%;
 }
 
-#datePicker {
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  color: var(--text);
-  background: var(--surface);
+/* #datePicker is now a .custom-select date-picker (see makeDatePicker)
+   whose own trigger/popup rules already cover its look — this just keeps
+   it from stretching to fill .date-bar's flex row the way the base
+   .custom-select { width: 100% } rule would (fine inside a modal's
+   full-width form-field, wrong sitting inline next to ◀/▶/اليوم). */
+.date-bar .custom-select {
+  width: auto;
+  flex: 0 0 150px;
+  margin-top: 0;
 }
 
 .day-label {
