@@ -176,16 +176,23 @@
   }
 
   // ---------- Export (Excel / PDF) ----------
-  const EXPORT_HEADER = ['اسم الطالب', 'حضور', 'تأخر', 'غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'];
+  const EXPORT_HEADER = ['اسم الطالب', 'حضور', 'تأخر', 'غياب', 'الاختبار', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الدفتر', 'تقرير السلوك', 'ملاحظات'];
+
+  // المجموع (من 40): الاختبار(15) + المشاركة(6) + المتابعة(6) + السلوك(6) +
+  // المشروع(7) — يستبعد "تقييم المشاركة" عمدًا، فهو تقييم نوعي (ممتاز/متوسط/
+  // ضعيف) محسوب من صفحة المتابعة اليومية، مو درجة رقمية من نفس نوع البقية.
+  function gradesTotal(report) {
+    const fields = ['testScore', 'participationScore', 'followUpScore', 'behaviorScore', 'projectScore'];
+    const values = fields.map(f => (report[f] !== undefined && report[f] !== null ? report[f] : null));
+    if (values.every(v => v === null)) return '';
+    return values.reduce((sum, v) => sum + (v || 0), 0);
+  }
 
   function buildExportRows(className) {
     const rows = [EXPORT_HEADER];
     (students[className] || []).forEach(studentName => {
       const agg = aggregateForStudent(className, studentName);
       const report = getReportEntry(className, studentName);
-      const test = report.testScore !== undefined && report.testScore !== null ? report.testScore : null;
-      const coursework = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : null;
-      const total = (test === null && coursework === null) ? '' : (test || 0) + (coursework || 0);
       const participationText = agg.participationAvg === null
         ? ''
         : `${PARTICIPATION_LABELS[Math.round(agg.participationAvg)]} (${agg.participationAvg.toFixed(1)})`;
@@ -195,10 +202,13 @@
         agg.present,
         agg.late,
         agg.absent,
-        test === null ? '' : test,
-        coursework === null ? '' : coursework,
-        total,
+        report.testScore ?? '',
+        report.participationScore ?? '',
         participationText,
+        report.followUpScore ?? '',
+        report.behaviorScore ?? '',
+        report.projectScore ?? '',
+        gradesTotal(report),
         report.notebookReport || '',
         report.behaviorReport || '',
         report.notes || '',
@@ -293,12 +303,16 @@
     URL.revokeObjectURL(url);
   }
 
+  // courseworkScore is the old, pre-split "الأعمال" field — no longer
+  // written by the UI, but still cleared here too in case a student has
+  // leftover data from before الأعمال became أربع درجات منفصلة.
+  const GRADE_FIELDS = ['testScore', 'participationScore', 'followUpScore', 'behaviorScore', 'projectScore', 'courseworkScore'];
+
   function startNewTerm() {
     let scoredCount = 0;
     Object.values(reports).forEach(classReports => {
       Object.values(classReports).forEach(entry => {
-        if ((entry.testScore !== undefined && entry.testScore !== null) ||
-            (entry.courseworkScore !== undefined && entry.courseworkScore !== null)) {
+        if (GRADE_FIELDS.some(f => entry[f] !== undefined && entry[f] !== null)) {
           scoredCount++;
         }
       });
@@ -310,8 +324,8 @@
     }
 
     if (!confirm(
-      `سيؤدي بدء فصل دراسي جديد إلى حذف درجة الاختبار والأعمال لـ ${scoredCount} طالب عبر جميع الفصول.\n\n` +
-      'يبقى الجدول وقوائم الطلاب والحضور والدفتر/السلوك/الملاحظات كما هي دون أي تغيير.\n\n' +
+      `سيؤدي بدء فصل دراسي جديد إلى حذف درجات الاختبار والمشاركة والمتابعة والسلوك والمشروع لـ ${scoredCount} طالب عبر جميع الفصول.\n\n` +
+      'يبقى الجدول وقوائم الطلاب والحضور والدفتر/تقرير السلوك/الملاحظات كما هي دون أي تغيير.\n\n' +
       'سيتم تنزيل نسخة احتياطية شاملة أولًا قبل الحذف. هل تريد المتابعة؟'
     )) return;
 
@@ -320,8 +334,7 @@
     Object.keys(reports).forEach(className => {
       Object.keys(reports[className]).forEach(studentName => {
         const entry = reports[className][studentName];
-        delete entry.testScore;
-        delete entry.courseworkScore;
+        GRADE_FIELDS.forEach(f => delete entry[f]);
       });
     });
     saveReports();
@@ -452,7 +465,7 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['اسم الطالب', 'حضور / تأخر / غياب', 'درجة الاختبار', 'الأعمال', 'المجموع', 'المشاركة', 'الدفتر', 'السلوك', 'ملاحظات'].forEach((label, i) => {
+      ['اسم الطالب', 'ح/ت/غ', 'الاختبار', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الدفتر', 'تقرير السلوك', 'ملاحظات'].forEach((label, i) => {
         const th = document.createElement('th');
         th.textContent = label;
         if (i === 0) th.className = 'period-col-header report-name-col';
@@ -474,6 +487,28 @@
     return wrap;
   }
 
+  // One numeric grade cell (الاختبار، المشاركة، المتابعة، السلوك، المشروع) —
+  // same إدخال/تحديث pattern repeated five times before, now shared so each
+  // just names its own field and max. onInput lets the caller (updateTotal)
+  // re-run after every keystroke without this helper knowing about totals.
+  function scoreCell(className, studentName, report, field, max, onInput) {
+    const td = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'report-input report-score-input';
+    input.placeholder = '—';
+    input.min = '0';
+    input.max = String(max);
+    input.value = report[field] !== undefined && report[field] !== null ? report[field] : '';
+    input.addEventListener('input', () => {
+      report[field] = input.value === '' ? null : Number(input.value);
+      setReportEntry(className, studentName, { [field]: report[field] });
+      onInput();
+    });
+    td.appendChild(input);
+    return td;
+  }
+
   function renderStudentReportRow(className, studentName) {
     const tr = document.createElement('tr');
     const agg = aggregateForStudent(className, studentName);
@@ -488,50 +523,24 @@
     attTd.className = 'report-readonly';
     // No isolateLTR here on purpose: this is pure digits/slashes with no
     // Arabic letters, so the bidi algorithm already orders it correctly
-    // to match the RTL header (حضور / تأخر / غياب) — forcing it LTR (as
-    // an earlier version did) actually broke that alignment.
+    // to match the RTL header (ح/ت/غ) — forcing it LTR (as an earlier
+    // version did) actually broke that alignment.
     attTd.textContent = `${agg.present} / ${agg.late} / ${agg.absent}`;
     tr.appendChild(attTd);
 
     const totalTd = document.createElement('td');
     totalTd.className = 'report-readonly';
     function updateTotal() {
-      const test = report.testScore !== undefined && report.testScore !== null ? report.testScore : null;
-      const coursework = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : null;
-      totalTd.textContent = (test === null && coursework === null) ? '—' : (test || 0) + (coursework || 0);
+      const total = gradesTotal(report);
+      totalTd.textContent = total === '' ? '—' : total;
     }
 
-    const scoreTd = document.createElement('td');
-    const scoreInput = document.createElement('input');
-    scoreInput.type = 'number';
-    scoreInput.className = 'report-input report-score-input';
-    scoreInput.placeholder = '—';
-    scoreInput.value = report.testScore !== undefined && report.testScore !== null ? report.testScore : '';
-    scoreInput.addEventListener('input', () => {
-      report.testScore = scoreInput.value === '' ? null : Number(scoreInput.value);
-      setReportEntry(className, studentName, { testScore: report.testScore });
-      updateTotal();
-    });
-    scoreTd.appendChild(scoreInput);
-    tr.appendChild(scoreTd);
+    tr.appendChild(scoreCell(className, studentName, report, 'testScore', 15, updateTotal));
+    tr.appendChild(scoreCell(className, studentName, report, 'participationScore', 6, updateTotal));
 
-    const courseworkTd = document.createElement('td');
-    const courseworkInput = document.createElement('input');
-    courseworkInput.type = 'number';
-    courseworkInput.className = 'report-input report-score-input';
-    courseworkInput.placeholder = '—';
-    courseworkInput.value = report.courseworkScore !== undefined && report.courseworkScore !== null ? report.courseworkScore : '';
-    courseworkInput.addEventListener('input', () => {
-      report.courseworkScore = courseworkInput.value === '' ? null : Number(courseworkInput.value);
-      setReportEntry(className, studentName, { courseworkScore: report.courseworkScore });
-      updateTotal();
-    });
-    courseworkTd.appendChild(courseworkInput);
-    tr.appendChild(courseworkTd);
-
-    updateTotal();
-    tr.appendChild(totalTd);
-
+    // تقييم المشاركة — تقييم نوعي (ممتاز/متوسط/ضعيف) محسوب تلقائيًا من
+    // متوسط تقييمات صفحة المتابعة اليومية، لا علاقة له بدرجة المشاركة
+    // الرقمية المجاورة له — لذلك يبقى عمود مستقل بعدها مباشرة لا داخلها.
     const partTd = document.createElement('td');
     partTd.className = 'report-readonly';
     if (agg.participationAvg === null) {
@@ -541,6 +550,13 @@
       partTd.textContent = `${PARTICIPATION_LABELS[rounded]} (${agg.participationAvg.toFixed(1)})`;
     }
     tr.appendChild(partTd);
+
+    tr.appendChild(scoreCell(className, studentName, report, 'followUpScore', 6, updateTotal));
+    tr.appendChild(scoreCell(className, studentName, report, 'behaviorScore', 6, updateTotal));
+    tr.appendChild(scoreCell(className, studentName, report, 'projectScore', 7, updateTotal));
+
+    updateTotal();
+    tr.appendChild(totalTd);
 
     tr.appendChild(textInputCell(className, studentName, 'notebookReport', report.notebookReport, 'تقرير الدفتر'));
     tr.appendChild(textInputCell(className, studentName, 'behaviorReport', report.behaviorReport, 'تقرير السلوك'));
@@ -727,8 +743,8 @@
   const participationStartHintEl = document.getElementById('participationStartHint');
   if (participationStartHintEl) {
     participationStartHintEl.textContent = termsConfigured
-      ? 'يُحتسب فقط ضمن نطاق الفصلين الدراسيين المحدَّدَين (من صفحة المتابعة اليومية) — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".'
-      : 'يبدأ احتساب المشاركة من 20/12 فما بعد — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".';
+      ? 'يُحتسب تقييم المشاركة فقط ضمن نطاق الفصلين الدراسيين المحدَّدَين (من صفحة المتابعة اليومية) — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".'
+      : 'يبدأ احتساب تقييم المشاركة من 20/12 فما بعد — أي يوم يحضره الطالب دون تقييم محدد يُحسب "متوسط".';
   }
 
   render();

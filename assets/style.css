@@ -1666,7 +1666,10 @@ body.zoomed-session main {
 }
 
 .report-table {
-  min-width: 1100px;
+  /* 3 more columns than before (الأعمال split into 4 + تقييم المشاركة
+     moved in, net +3) — bumped from 1100px to keep every column a
+     comfortable width instead of getting squeezed. */
+  min-width: 1450px;
 }
 
 .report-name-col {
