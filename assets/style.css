@@ -685,15 +685,19 @@ main {
 }
 .date-picker-day:hover:not(:disabled) { background: var(--bg); }
 .date-picker-day.today { box-shadow: inset 0 0 0 1px var(--primary); }
-.date-picker-day.selected {
-  background: var(--primary);
-  color: #fff;
-  font-weight: 700;
-}
 .date-picker-day.disabled {
   color: var(--text-muted);
   opacity: 0.35;
   cursor: not-allowed;
+}
+/* After .disabled so an already-selected value that happens to be a
+   weekend (e.g. "today" itself falls on الجمعة/السبت) still reads as
+   selected instead of a washed-out overlap of both states. */
+.date-picker-day.selected {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  opacity: 1;
 }
 .date-picker-day-blank {
   pointer-events: none;

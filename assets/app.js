@@ -1040,8 +1040,17 @@
       renderCalendar();
       const rect = trigger.getBoundingClientRect();
       popup.style.top = `${rect.bottom + 4}px`;
-      popup.style.left = `${rect.left}px`;
-      popup.style.width = `${Math.max(rect.width, 260)}px`;
+      // Anchored to the trigger's right edge, extending leftward — matches
+      // RTL reading direction — then clamped within the viewport so a
+      // trigger sitting close to either edge (this one is narrower than
+      // the popup itself) never pushes the calendar off-screen.
+      const popupWidth = Math.max(rect.width, 260);
+      const margin = 8;
+      let left = rect.right - popupWidth;
+      left = Math.min(left, window.innerWidth - margin - popupWidth);
+      left = Math.max(left, margin);
+      popup.style.left = `${left}px`;
+      popup.style.width = `${popupWidth}px`;
       const available = window.innerHeight - rect.bottom - 16;
       popup.style.maxHeight = `${Math.max(200, Math.min(340, available))}px`;
       popup.hidden = false;
