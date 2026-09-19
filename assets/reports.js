@@ -176,7 +176,7 @@
   }
 
   // ---------- Export (Excel / PDF) ----------
-  const EXPORT_HEADER = ['اسم الطالب', 'حضور', 'تأخر', 'غياب', 'الاختبار', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الدفتر', 'تقرير السلوك', 'ملاحظات'];
+  const EXPORT_HEADER = ['اسم الطالب', 'حضور', 'تأخر', 'غياب', 'الاختبار القصير', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الكتاب', 'تقرير السلوك', 'ملاحظات'];
 
   // المجموع (من 40): الاختبار(15) + المشاركة(6) + المتابعة(6) + السلوك(6) +
   // المشروع(7) — يستبعد "تقييم المشاركة" عمدًا، فهو تقييم نوعي (ممتاز/متوسط/
@@ -324,8 +324,8 @@
     }
 
     if (!confirm(
-      `سيؤدي بدء فصل دراسي جديد إلى حذف درجات الاختبار والمشاركة والمتابعة والسلوك والمشروع لـ ${scoredCount} طالب عبر جميع الفصول.\n\n` +
-      'يبقى الجدول وقوائم الطلاب والحضور والدفتر/تقرير السلوك/الملاحظات كما هي دون أي تغيير.\n\n' +
+      `سيؤدي بدء فصل دراسي جديد إلى حذف درجات الاختبار القصير والمشاركة والمتابعة والسلوك والمشروع لـ ${scoredCount} طالب عبر جميع الفصول.\n\n` +
+      'يبقى الجدول وقوائم الطلاب والحضور والكتاب/تقرير السلوك/الملاحظات كما هي دون أي تغيير.\n\n' +
       'سيتم تنزيل نسخة احتياطية شاملة أولًا قبل الحذف. هل تريد المتابعة؟'
     )) return;
 
@@ -465,7 +465,7 @@
 
       const thead = document.createElement('thead');
       const headRow = document.createElement('tr');
-      ['اسم الطالب', 'ح/ت/غ', 'الاختبار', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الدفتر', 'تقرير السلوك', 'ملاحظات'].forEach((label, i) => {
+      ['اسم الطالب', 'ح/ت/غ', 'الاختبار القصير', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الكتاب', 'تقرير السلوك', 'ملاحظات'].forEach((label, i) => {
         const th = document.createElement('th');
         th.textContent = label;
         if (i === 0) th.className = 'period-col-header report-name-col';
@@ -487,10 +487,16 @@
     return wrap;
   }
 
-  // One numeric grade cell (الاختبار، المشاركة، المتابعة، السلوك، المشروع) —
-  // same إدخال/تحديث pattern repeated five times before, now shared so each
-  // just names its own field and max. onInput lets the caller (updateTotal)
-  // re-run after every keystroke without this helper knowing about totals.
+  // One numeric grade cell (الاختبار القصير، المشاركة، المتابعة، السلوك،
+  // المشروع) — same إدخال/تحديث pattern repeated five times before, now
+  // shared so each just names its own field and max. onInput lets the
+  // caller (updateTotal) re-run after every keystroke without this helper
+  // knowing about totals.
+  //
+  // min/max attributes alone don't stop a typed value from exceeding them —
+  // they only style :invalid and affect the spinner arrows, so a value like
+  // 50 in a 15-max field was silently accepted and saved as-is. Clamping on
+  // every 'input' event is what actually enforces the limit.
   function scoreCell(className, studentName, report, field, max, onInput) {
     const td = document.createElement('td');
     const input = document.createElement('input');
@@ -501,6 +507,10 @@
     input.max = String(max);
     input.value = report[field] !== undefined && report[field] !== null ? report[field] : '';
     input.addEventListener('input', () => {
+      if (input.value !== '') {
+        const clamped = Math.min(max, Math.max(0, Number(input.value)));
+        if (clamped !== Number(input.value)) input.value = clamped;
+      }
       report[field] = input.value === '' ? null : Number(input.value);
       setReportEntry(className, studentName, { [field]: report[field] });
       onInput();
@@ -558,7 +568,9 @@
     updateTotal();
     tr.appendChild(totalTd);
 
-    tr.appendChild(textInputCell(className, studentName, 'notebookReport', report.notebookReport, 'تقرير الدفتر'));
+    // العمود صار "الكتاب" (اسم الحقل notebookReport بقي كما هو داخليًا
+    // لتفادي فقدان أي بيانات محفوظة سابقًا تحت هذا المفتاح).
+    tr.appendChild(textInputCell(className, studentName, 'notebookReport', report.notebookReport, 'تقرير الكتاب'));
     tr.appendChild(textInputCell(className, studentName, 'behaviorReport', report.behaviorReport, 'تقرير السلوك'));
     tr.appendChild(textInputCell(className, studentName, 'notes', report.notes, 'ملاحظات'));
 
