@@ -1258,7 +1258,24 @@ body.zoomed-session main {
      Hidden only under this exact combination (landscape + zoomed), so
      rotating back to portrait brings it straight back with nothing to
      restore by hand. */
-  body.zoomed-session .topbar {
+  body.zoomed-session .topbar,
+  body.zoomed-report .topbar {
+    display: none;
+  }
+
+  body.zoomed-report .zoomed-header {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
+  /* Same idea as attendance's زووم above, applied to صفحة التقارير —
+     opening a class is meant for reading back grades already entered,
+     not for browsing the rest of the page, so the hint paragraph and
+     "أكثر الطلاب غيابًا" (both only useful from the class list) go too. */
+  body.zoomed-report .hint-text,
+  body.zoomed-report #overviewCard {
     display: none;
   }
 }
@@ -1598,6 +1615,13 @@ body.zoomed-session main {
 }
 
 /* ---------- Reports page ---------- */
+
+/* Opening a class (zoomedClassName in reports.js) takes over main the
+   same way a zoomed session does in صفحة المتابعة اليومية — no page
+   padding fighting the table for width. */
+body.zoomed-report main {
+  padding: 0;
+}
 
 #reportsContainer {
   display: flex;

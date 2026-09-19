@@ -389,9 +389,24 @@
   // ---------- Rendering ----------
   const container = document.getElementById('reportsContainer');
   const emptyState = document.getElementById('emptyState');
-  let openClasses = new Set(); // which class report cards are expanded — collapsed by default
+  // Which class (if any) is open full-screen — opening a class takes over
+  // the whole page instead of expanding in place, same as صفحة المتابعة
+  // اليومية's session zoom, so the wide grade table gets full width/height
+  // instead of squeezing into an accordion row.
+  let zoomedClassName = null;
 
   function render() {
+    if (zoomedClassName && !students[zoomedClassName]) zoomedClassName = null;
+
+    if (zoomedClassName) {
+      document.body.classList.add('zoomed-report');
+      container.innerHTML = '';
+      container.appendChild(renderZoomedClassReport(zoomedClassName));
+      emptyState.hidden = true;
+      return;
+    }
+    document.body.classList.remove('zoomed-report');
+
     container.innerHTML = '';
     const classNames = Object.keys(students).sort((a, b) => a.localeCompare(b, 'ar'));
     emptyState.hidden = classNames.length > 0;
@@ -400,29 +415,9 @@
     });
   }
 
-  function renderClassReport(className) {
-    const wrap = document.createElement('div');
-    wrap.className = 'class-card report-card';
-    wrap.dataset.className = className;
-    if (openClasses.has(className)) wrap.classList.add('open');
-
-    const header = document.createElement('div');
-    header.className = 'class-card-header';
-
-    const chevron = document.createElement('span');
-    chevron.className = 'chevron';
-    chevron.textContent = '◀';
-    header.appendChild(chevron);
-
-    const nameEl = document.createElement('span');
-    nameEl.className = 'class-name';
-    nameEl.textContent = isolateLTR(className);
-    header.appendChild(nameEl);
-    const countEl = document.createElement('span');
-    countEl.className = 'student-count';
-    countEl.textContent = `${(students[className] || []).length} طالب`;
-    header.appendChild(countEl);
-
+  // Shared by the class-list row and the zoomed header — both need the
+  // exact same تصدير Excel/PDF buttons.
+  function buildExportButtons(className) {
     const exportBtns = document.createElement('div');
     exportBtns.className = 'report-export-btns';
 
@@ -446,44 +441,124 @@
     });
     exportBtns.appendChild(pdfBtn);
 
-    header.appendChild(exportBtns);
+    return exportBtns;
+  }
+
+  // The table headers, shared between here and the export functions'
+  // on-screen twin — kept as one literal array (not extracted further)
+  // since it's now only built in this one place.
+  const REPORT_TABLE_HEADERS = ['اسم الطالب', 'ح/ت/غ', 'الاختبار القصير', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الكتاب', 'تقرير السلوك', 'ملاحظات'];
+
+  function buildReportTable(className) {
+    const scrollWrap = document.createElement('div');
+    scrollWrap.className = 'schedule-wrap report-table-wrap';
+
+    const table = document.createElement('table');
+    table.className = 'grid report-table';
+
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    REPORT_TABLE_HEADERS.forEach((label, i) => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      if (i === 0) th.className = 'period-col-header report-name-col';
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    (students[className] || []).forEach(studentName => {
+      tbody.appendChild(renderStudentReportRow(className, studentName));
+    });
+    table.appendChild(tbody);
+
+    scrollWrap.appendChild(table);
+    return scrollWrap;
+  }
+
+  // Full-screen focused view for exactly one class — page chrome (topbar,
+  // hint text, أكثر الطلاب غيابًا) is hidden via the zoomed-report body
+  // class while a landscape phone shows this, so the wide grade table
+  // gets the full screen instead of competing with everything else.
+  function renderZoomedClassReport(className) {
+    const view = document.createElement('div');
+    view.className = 'zoomed-session-view';
+
+    const header = document.createElement('div');
+    header.className = 'zoomed-header';
+
+    const navRow = document.createElement('div');
+    navRow.className = 'zoomed-header-nav';
+
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'btn btn-ghost btn-small icon-btn-round';
+    backBtn.textContent = '✕';
+    backBtn.title = 'رجوع لقائمة الفصول';
+    backBtn.setAttribute('aria-label', 'رجوع لقائمة الفصول');
+    backBtn.addEventListener('click', () => {
+      zoomedClassName = null;
+      render();
+    });
+    navRow.appendChild(backBtn);
+
+    const spacer = document.createElement('div');
+    spacer.className = 'spacer';
+    navRow.appendChild(spacer);
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'session-subject';
+    nameEl.textContent = isolateLTR(className);
+    navRow.appendChild(nameEl);
+
+    const countEl = document.createElement('span');
+    countEl.className = 'session-meta';
+    countEl.textContent = `${(students[className] || []).length} طالب`;
+    navRow.appendChild(countEl);
+
+    header.appendChild(navRow);
+    header.appendChild(buildExportButtons(className));
+    view.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'zoomed-body';
+    body.appendChild(buildReportTable(className));
+    view.appendChild(body);
+
+    return view;
+  }
+
+  function renderClassReport(className) {
+    const wrap = document.createElement('div');
+    wrap.className = 'class-card report-card';
+    wrap.dataset.className = className;
+
+    const header = document.createElement('div');
+    header.className = 'class-card-header';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = '◀';
+    header.appendChild(chevron);
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'class-name';
+    nameEl.textContent = isolateLTR(className);
+    header.appendChild(nameEl);
+    const countEl = document.createElement('span');
+    countEl.className = 'student-count';
+    countEl.textContent = `${(students[className] || []).length} طالب`;
+    header.appendChild(countEl);
+
+    header.appendChild(buildExportButtons(className));
 
     header.addEventListener('click', () => {
-      if (openClasses.has(className)) openClasses.delete(className);
-      else openClasses.add(className);
+      zoomedClassName = className;
       render();
     });
 
     wrap.appendChild(header);
-
-    if (openClasses.has(className)) {
-      const scrollWrap = document.createElement('div');
-      scrollWrap.className = 'schedule-wrap report-table-wrap';
-
-      const table = document.createElement('table');
-      table.className = 'grid report-table';
-
-      const thead = document.createElement('thead');
-      const headRow = document.createElement('tr');
-      ['اسم الطالب', 'ح/ت/غ', 'الاختبار القصير', 'المشاركة', 'تقييم المشاركة', 'المتابعة', 'السلوك', 'المشروع', 'المجموع', 'الكتاب', 'تقرير السلوك', 'ملاحظات'].forEach((label, i) => {
-        const th = document.createElement('th');
-        th.textContent = label;
-        if (i === 0) th.className = 'period-col-header report-name-col';
-        headRow.appendChild(th);
-      });
-      thead.appendChild(headRow);
-      table.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      (students[className] || []).forEach(studentName => {
-        tbody.appendChild(renderStudentReportRow(className, studentName));
-      });
-      table.appendChild(tbody);
-
-      scrollWrap.appendChild(table);
-      wrap.appendChild(scrollWrap);
-    }
-
     return wrap;
   }
 
@@ -764,14 +839,12 @@
 
   // Deep link from the schedule page's "📊 تقرير الفصل" quick-link — opens
   // straight to that class's report instead of leaving the teacher to
-  // scroll and find it manually.
+  // find it manually.
   (() => {
     const deepLinkClass = new URLSearchParams(location.search).get('class');
     if (!deepLinkClass || !students[deepLinkClass]) return;
-    openClasses.add(deepLinkClass);
+    zoomedClassName = deepLinkClass;
     render();
-    const card = Array.from(container.querySelectorAll('.report-card')).find(el => el.dataset.className === deepLinkClass);
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   })();
 
   document.getElementById('exportAllExcelBtn').addEventListener('click', exportAllClassesExcel);
