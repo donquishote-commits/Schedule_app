@@ -1777,6 +1777,193 @@
     return root;
   }
 
+  // Arabic month names for the calendar header — same list as صفحة
+  // الجدول's own formatArabicDateShort, kept as a separate copy here per
+  // this file's usual convention of not sharing state across pages.
+  const ARABIC_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  // A calendar popup standing in for <input type="date"> — kept close to
+  // a native date picker's own shape (month header with prev/next, a
+  // weekday row, a day grid) so it still reads as "a date field" at a
+  // glance, just drawn in the app's own colors instead of OS chrome.
+  // Mirrors makeCustomSelect's API surface (.value, .min, fires 'change',
+  // hooks into the same open/close-on-outside-click machinery via
+  // _closeCustomSelect) so it drops into swapForm's existing code with no
+  // special-casing beyond this constructor.
+  function makeDatePicker(id) {
+    const root = document.getElementById(id);
+    root.classList.add('custom-select', 'date-picker');
+    root.innerHTML = '';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger';
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'custom-select-value';
+    const arrow = document.createElement('span');
+    arrow.className = 'custom-select-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    trigger.appendChild(valueSpan);
+    trigger.appendChild(arrow);
+    root.appendChild(trigger);
+
+    const popup = document.createElement('div');
+    popup.className = 'custom-select-options date-picker-popup';
+    popup.hidden = true;
+    root.appendChild(popup);
+
+    let internalValue = '';
+    let minValue = '';
+    let viewYear = 0;
+    let viewMonth = 0;
+
+    function updateTriggerLabel() {
+      valueSpan.textContent = internalValue || 'اختر التاريخ';
+      valueSpan.classList.toggle('placeholder', !internalValue);
+    }
+
+    function setValue(v, opts) {
+      internalValue = v || '';
+      updateTriggerLabel();
+      if (!opts || !opts.silent) root.dispatchEvent(new Event('change'));
+    }
+
+    function closePopup() {
+      popup.hidden = true;
+      root.classList.remove('open');
+    }
+    root._closeCustomSelect = closePopup;
+
+    function renderCalendar() {
+      popup.innerHTML = '';
+      const body = document.createElement('div');
+      body.className = 'date-picker-body';
+
+      const header = document.createElement('div');
+      header.className = 'date-picker-header';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'btn btn-ghost icon-btn-round';
+      prevBtn.textContent = '▶';
+      prevBtn.title = 'الشهر السابق';
+      prevBtn.setAttribute('aria-label', 'الشهر السابق');
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewMonth--;
+        if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+        renderCalendar();
+      });
+
+      const label = document.createElement('span');
+      label.className = 'date-picker-month-label';
+      label.textContent = `${ARABIC_MONTHS[viewMonth]} ${viewYear}`;
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'btn btn-ghost icon-btn-round';
+      nextBtn.textContent = '◀';
+      nextBtn.title = 'الشهر القادم';
+      nextBtn.setAttribute('aria-label', 'الشهر القادم');
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewMonth++;
+        if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+        renderCalendar();
+      });
+
+      header.appendChild(prevBtn);
+      header.appendChild(label);
+      header.appendChild(nextBtn);
+      body.appendChild(header);
+
+      const weekdaysRow = document.createElement('div');
+      weekdaysRow.className = 'date-picker-weekdays';
+      ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'].forEach(l => {
+        const s = document.createElement('span');
+        s.textContent = l;
+        weekdaysRow.appendChild(s);
+      });
+      body.appendChild(weekdaysRow);
+
+      const daysGrid = document.createElement('div');
+      daysGrid.className = 'date-picker-days';
+
+      const startWeekday = new Date(viewYear, viewMonth, 1).getDay();
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const todayStr = todayISO();
+
+      for (let i = 0; i < startWeekday; i++) {
+        const blank = document.createElement('span');
+        blank.className = 'date-picker-day date-picker-day-blank';
+        daysGrid.appendChild(blank);
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dISO = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const weekday = new Date(viewYear, viewMonth, day).getDay();
+        // الجمعة/السبت غير قابلين للاختيار أصلًا — البرنامج لا يجدول
+        // حصصًا فيهما، فلا داعي يختارهما المعلم ليصطدم برسالة رفض لاحقًا.
+        const isWeekend = weekday === 5 || weekday === 6;
+        const isBeforeMin = minValue && dISO < minValue;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'date-picker-day';
+        btn.textContent = String(day);
+        if (dISO === internalValue) btn.classList.add('selected');
+        if (dISO === todayStr) btn.classList.add('today');
+        if (isWeekend || isBeforeMin) {
+          btn.disabled = true;
+          btn.classList.add('disabled');
+        } else {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setValue(dISO);
+            closePopup();
+          });
+        }
+        daysGrid.appendChild(btn);
+      }
+      body.appendChild(daysGrid);
+      popup.appendChild(body);
+    }
+
+    function openPopup() {
+      document.querySelectorAll('.custom-select.open').forEach(el => {
+        if (el !== root) el._closeCustomSelect();
+      });
+      const base = isoToDate(internalValue || minValue || todayISO());
+      viewYear = base.getFullYear();
+      viewMonth = base.getMonth();
+      renderCalendar();
+      const rect = trigger.getBoundingClientRect();
+      popup.style.top = `${rect.bottom + 4}px`;
+      popup.style.left = `${rect.left}px`;
+      popup.style.width = `${Math.max(rect.width, 260)}px`;
+      const available = window.innerHeight - rect.bottom - 16;
+      popup.style.maxHeight = `${Math.max(200, Math.min(340, available))}px`;
+      popup.hidden = false;
+      root.classList.add('open');
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (popup.hidden) openPopup(); else closePopup();
+    });
+
+    Object.defineProperty(root, 'value', {
+      get() { return internalValue; },
+      set(v) { setValue(v, { silent: true }); },
+    });
+
+    Object.defineProperty(root, 'min', {
+      get() { return minValue; },
+      set(v) { minValue = v || ''; },
+    });
+
+    updateTriggerLabel();
+    return root;
+  }
+
   document.addEventListener('click', (e) => {
     document.querySelectorAll('.custom-select.open').forEach(el => {
       if (!el.contains(e.target)) el._closeCustomSelect();
@@ -1789,7 +1976,7 @@
   // ---------- Swap a session to a different date (تبديل) ----------
   const swapModal = document.getElementById('swapModal');
   const swapForm = document.getElementById('swapForm');
-  const swapDateInput = document.getElementById('swapDateInput');
+  const swapDateInput = makeDatePicker('swapDatePicker');
   const swapPeriodSelect = makeCustomSelect('swapPeriod');
   const swapNoteInput = document.getElementById('swapNoteInput');
   const swapHintText = document.getElementById('swapHintText');

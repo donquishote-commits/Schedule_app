@@ -624,6 +624,81 @@ main {
   background: var(--primary);
 }
 
+/* Calendar popup for تبديل الحصة's "التاريخ الجديد" — same trigger/popup
+   shell as .custom-select (.date-picker just adds this grid content
+   inside it), kept close to a native date picker's own layout (month
+   header with prev/next, a weekday row, a day grid) so it still reads
+   as "a date field" at a glance, just drawn in the app's own colors.
+   The flex layout lives on an inner .date-picker-body, not directly on
+   .date-picker-popup (which shares .custom-select-options and carries
+   the [hidden] attribute) — an unconditional `display` on the hidden
+   element itself is an author-origin rule that beats the UA stylesheet's
+   `[hidden] { display: none }` regardless of specificity, so the popup
+   would stay visible (and clickable) even while "closed". */
+.date-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+}
+
+.date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.date-picker-month-label {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.date-picker-weekdays,
+.date-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.date-picker-weekdays {
+  text-align: center;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.date-picker-days {
+  gap: 2px;
+}
+
+.date-picker-day {
+  border: none;
+  background: none;
+  border-radius: 6px;
+  padding: 7px 0;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.date-picker-day:hover:not(:disabled) { background: var(--bg); }
+.date-picker-day.today { box-shadow: inset 0 0 0 1px var(--primary); }
+.date-picker-day.selected {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.date-picker-day.disabled {
+  color: var(--text-muted);
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.date-picker-day-blank {
+  pointer-events: none;
+}
+
 .row {
   display: flex;
   gap: 12px;
