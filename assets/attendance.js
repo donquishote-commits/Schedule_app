@@ -888,6 +888,7 @@
         dirtySessions.delete(draftMapKey(dateISO, session.id));
         setSessionDirty(false);
         renderDaySummary(dateISO);
+        tbody.querySelectorAll('tr').forEach(row => { if (row._updateStats) row._updateStats(); });
       });
 
       saveRow.appendChild(saveBtn);
@@ -1010,6 +1011,13 @@
 
     updateStats();
     tr.appendChild(statsTd);
+
+    // Exposed so the save button can refresh this cell once today's
+    // attendance is actually committed — countStatus() only counts
+    // committed history, so a row rendered before today's save otherwise
+    // keeps showing stale totals that exclude today until the page is
+    // left and reopened.
+    tr._updateStats = updateStats;
 
     return tr;
   }
