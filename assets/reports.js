@@ -7,6 +7,13 @@
   const REPORTS_KEY = 'schedule_app_reports_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
+  // Written by app.js whenever a class is deleted from the schedule —
+  // {id, room} pairs, kept forever, so a deleted class's old id can still
+  // be traced back to its room here. Without this, classIdsForRoom() would
+  // only see currently-scheduled classes, and a deleted class's attendance
+  // history would silently stop being counted even though the raw records
+  // are still in storage.
+  const DELETED_CLASS_ARCHIVE_KEY = 'schedule_app_deleted_classes_archive_v1';
 
   const PARTICIPATION_SCALE = { excellent: 1, normal: 2, none: 3 };
   const PARTICIPATION_LABELS = { 1: 'ممتاز', 2: 'متوسط', 3: 'ضعيف' };
@@ -32,6 +39,7 @@
 
   const scheduleClasses = loadJSON(SCHEDULE_KEY, []);
   const tempSessions = loadJSON(TEMP_SESSIONS_KEY, []);
+  const deletedClassArchive = loadJSON(DELETED_CLASS_ARCHIVE_KEY, []);
   const students = loadJSON(STUDENTS_KEY, {});
   const attendance = loadJSON(ATTENDANCE_KEY, {});
   const terms = loadJSON(TERMS_KEY, { term1Start: '', term1End: '', term2Start: '', term2End: '' });
@@ -78,7 +86,8 @@
   function classIdsForRoom(className) {
     const regularIds = scheduleClasses.filter(c => (c.room || '').trim() === className).map(c => c.id);
     const tempIds = tempSessions.filter(t => (t.room || '').trim() === className).map(t => t.id);
-    return [...regularIds, ...tempIds];
+    const archivedIds = deletedClassArchive.filter(a => (a.room || '').trim() === className).map(a => a.id);
+    return [...regularIds, ...tempIds, ...archivedIds];
   }
 
   function aggregateForStudent(className, studentName) {

@@ -3,6 +3,17 @@
 
   const STORAGE_KEY = 'schedule_app_classes_ar_v1';
   const TEMP_SESSIONS_KEY = 'schedule_app_temp_sessions_v1';
+  // Deleting a class from the schedule only removes it from STORAGE_KEY —
+  // its old id, however, is still what every attendance/participation
+  // record recorded under it is keyed by. Without remembering which room
+  // that id belonged to, reports.js's per-room aggregation (classIdsForRoom)
+  // would silently stop counting that history once the id disappears from
+  // the live schedule, even though the raw data is still sitting in
+  // storage. This is an append-only archive of {id, room} pairs for every
+  // deleted class, kept forever, so that history stays linked to its room
+  // no matter how many times a period gets deleted/recreated (e.g. when
+  // rebuilding the whole grid for a new school timetable).
+  const DELETED_CLASS_ARCHIVE_KEY = 'schedule_app_deleted_classes_archive_v1';
   const TERMS_KEY = 'schedule_app_terms_v1';
   const TEACHER_NAME_KEY = 'schedule_app_teacher_name_v1';
   const TEACHER_DEPARTMENT_KEY = 'schedule_app_teacher_department_v1';
@@ -188,6 +199,17 @@
 
   function saveClasses() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(classes));
+  }
+
+  function archiveDeletedClass(c) {
+    let archive = [];
+    try {
+      archive = JSON.parse(localStorage.getItem(DELETED_CLASS_ARCHIVE_KEY)) || [];
+    } catch (e) {
+      archive = [];
+    }
+    archive.push({ id: c.id, room: c.room });
+    localStorage.setItem(DELETED_CLASS_ARCHIVE_KEY, JSON.stringify(archive));
   }
 
   function uid() {
@@ -1306,8 +1328,10 @@
   deleteBtn.addEventListener('click', () => {
     if (!editingId) return;
     if (!confirm('حذف هذه الحصة؟ سيتم حذف ملاحظاتها أيضًا.')) return;
+    const deleted = classes.find(c => c.id === editingId);
     classes = classes.filter(c => c.id !== editingId);
     saveClasses();
+    if (deleted) archiveDeletedClass(deleted);
     renderGrid();
     closeModal();
   });
