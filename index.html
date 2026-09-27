@@ -29,6 +29,7 @@
         <button id="exportCalendarBtn" class="btn btn-ghost" title="تنزيل ملف تقويم لاستيراده في Google Calendar">📅 تصدير إلى Google Calendar</button>
         <button id="fullBackupExportBtn" class="btn btn-ghost" title="تنزيل نسخة احتياطية شاملة: الجدول، الفصول، الحضور، والتقارير">💾 نسخة احتياطية شاملة</button>
         <button id="fullBackupImportBtn" class="btn btn-ghost" title="استعادة كل البيانات من نسخة احتياطية شاملة">📂 استعادة نسخة شاملة</button>
+        <button id="mergeBackupImportBtn" class="btn btn-ghost" title="إضافة بيانات حضور قديمة من نسخة احتياطية سابقة دون حذف أي بيانات حالية — مفيد لاسترجاع بيانات حصة سبق حذفها من الجدول">🔗 دمج بيانات قديمة</button>
         <button id="forceUpdateBtn" class="btn btn-ghost" title="يُحدّث التطبيق إلى آخر إصدار دون حذف أي بيانات محفوظة">🔄 تحديث التطبيق</button>
         <button id="testNotifBtn" class="btn btn-ghost" title="جرّب شكل التنبيه قبل أن نقرر تفعيله تلقائيًا">🔔 تجربة تنبيه</button>
       </div>
@@ -41,6 +42,7 @@
     <button id="addClassBtn" class="btn btn-primary">+ إضافة حصة</button>
     <input type="file" id="importFile" accept="application/json" hidden>
     <input type="file" id="fullBackupImportFile" accept="application/json" hidden>
+    <input type="file" id="mergeBackupImportFile" accept="application/json" hidden>
   </div>
 </header>
 

@@ -1556,6 +1556,74 @@
     reader.readAsText(file);
   });
 
+  // ---------- Merge attendance history from an older backup ----------
+  // Deleting a class only removes it from the live schedule — its old id
+  // stays what any attendance already recorded under it is keyed by (see
+  // archiveDeletedClass above), so history keeps counting in reports.js.
+  // But a class deleted *before* that archiving existed has no such link,
+  // and there's no way to reconstruct it from the live app alone once the
+  // class definition itself is gone. If the teacher still has an older
+  // full-backup file (exported before that deletion), this pulls just the
+  // missing pieces back in — the deleted class's id→room link, plus any
+  // attendance sessions not already present — without touching anything
+  // recorded since, unlike "استعادة نسخة شاملة" which replaces everything.
+  const mergeBackupImportFile = document.getElementById('mergeBackupImportFile');
+  document.getElementById('mergeBackupImportBtn').addEventListener('click', () => mergeBackupImportFile.click());
+  mergeBackupImportFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const bundle = JSON.parse(reader.result);
+        if (!bundle || typeof bundle.data !== 'object') throw new Error('Invalid format');
+
+        const oldSchedule = Array.isArray(bundle.data.schedule) ? bundle.data.schedule : [];
+        const oldAttendance = (bundle.data.attendance && typeof bundle.data.attendance === 'object') ? bundle.data.attendance : {};
+
+        const currentIds = new Set(classes.map(c => c.id));
+        let archive = [];
+        try {
+          archive = JSON.parse(localStorage.getItem(DELETED_CLASS_ARCHIVE_KEY)) || [];
+        } catch (err2) {
+          archive = [];
+        }
+        const archivedIds = new Set(archive.map(a => a.id));
+
+        let archivedCount = 0;
+        oldSchedule.forEach(c => {
+          if (!currentIds.has(c.id) && !archivedIds.has(c.id)) {
+            archive.push({ id: c.id, room: c.room });
+            archivedIds.add(c.id);
+            archivedCount++;
+          }
+        });
+        localStorage.setItem(DELETED_CLASS_ARCHIVE_KEY, JSON.stringify(archive));
+
+        const currentAttendance = JSON.parse(localStorage.getItem('schedule_app_attendance_v1') || '{}');
+        let mergedSessions = 0;
+        Object.keys(oldAttendance).forEach(sk => {
+          if (!(sk in currentAttendance)) {
+            currentAttendance[sk] = oldAttendance[sk];
+            mergedSessions++;
+          }
+        });
+        localStorage.setItem('schedule_app_attendance_v1', JSON.stringify(currentAttendance));
+
+        alert(
+          `تم الدمج: أُضيف ${archivedCount} من الحصص القديمة إلى سجل الغرف، و${mergedSessions} من أيام الحضور المفقودة.\n\n` +
+          'لم يُحذف أو يُستبدل أي شيء من بياناتك الحالية. سيُعاد تحميل الصفحة الآن.'
+        );
+        location.reload();
+      } catch (err) {
+        alert('تعذّرت قراءة هذا الملف — تأكد من أنه نسخة احتياطية شاملة صادرة من هذا التطبيق.');
+      } finally {
+        mergeBackupImportFile.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+
   // ---------- Export to Google Calendar (.ics) ----------
   function pad2(n) {
     return String(n).padStart(2, '0');
